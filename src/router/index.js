@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-const Dashboard = () => import('../views/Dashboard.vue')
-const OrderList = () => import('../views/OrderList.vue')
+const Dashboard = () => import('@/views/Dashboard.vue')
+const OrderList = () => import('@/views/OrderList.vue')
 
 const routes = [
   {
