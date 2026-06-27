@@ -23,12 +23,20 @@ export const useOrdersStore = defineStore('orders', () => {
   const addOrder = (orderData) => {
     const newOrder = {
       id: Date.now(),
-      category: orderData.category,
+      category: orderData.category || '',
+      name: orderData.name || '',
+      platform: orderData.platform || '',
       status: orderData.status || 'PENDING',
       amount: orderData.amount || 0,
-      description: orderData.description || '',
+      currency: orderData.currency || 'TWD',
+      depositPaid: orderData.depositPaid || 0,
+      balanceDue: orderData.balanceDue || 0,
+      paymentDueDate: orderData.paymentDueDate || null,
+      estimatedArrival: orderData.estimatedArrival || null,
+      trackingNumber: orderData.trackingNumber || '',
+      shippingMethod: orderData.shippingMethod || '',
+      notes: orderData.notes || '',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
       ...orderData
     }
     orders.value.push(newOrder)
@@ -40,8 +48,7 @@ export const useOrdersStore = defineStore('orders', () => {
     if (index !== -1) {
       orders.value[index] = {
         ...orders.value[index],
-        ...orderData,
-        updatedAt: new Date().toISOString()
+        ...orderData
       }
       return orders.value[index]
     }
@@ -78,7 +85,8 @@ export const useOrdersStore = defineStore('orders', () => {
       if (filters.search) {
         const searchLower = filters.search.toLowerCase()
         result = result.filter(order =>
-          order.description?.toLowerCase().includes(searchLower)
+          order.name?.toLowerCase().includes(searchLower) ||
+          order.notes?.toLowerCase().includes(searchLower)
         )
       }
       
