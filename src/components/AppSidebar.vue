@@ -30,6 +30,16 @@
 
         <li>
           <router-link
+            to="/orders"
+            class="flex items-center gap-3 px-4 py-2 rounded-full text-ink hover:bg-white/50 transition-colors"
+            :class="isActive('/orders') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
+          >
+            📋 全部訂單
+          </router-link>
+        </li>
+
+        <li>
+          <router-link
             to="/ui-showcase"
             class="flex items-center gap-3 px-4 py-2 rounded-full text-ink hover:bg-white/50 transition-colors"
             :class="isActive('/ui-showcase') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
@@ -58,16 +68,6 @@
               </router-link>
             </li>
           </ul>
-        </li>
-
-        <li class="pt-2">
-          <router-link
-            to="/orders"
-            class="flex items-center gap-3 px-4 py-2 rounded-full text-sm text-ink hover:bg-white/50 transition-colors"
-            :class="isActive('/orders') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
-          >
-            📋 全部訂單
-          </router-link>
         </li>
       </ul>
     </nav>
