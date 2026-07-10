@@ -18,6 +18,7 @@ export const CATEGORY_LABELS = {
 }
 
 export const STATUSES = {
+  AWAITING_SHIPMENT: { label: '待出貨' },
   CONSOLIDATING: { label: '集運中' },
   IN_TRANSIT: { label: '運送中' },
   ARRIVED: { label: '已抵台' },
@@ -34,7 +35,7 @@ export const useOrdersStore = defineStore('orders', () => {
       name: orderData.name || '',
       platform: orderData.platform || '',
       productUrl: orderData.productUrl || '',
-      status: orderData.status || 'CONSOLIDATING',
+      status: orderData.status || 'AWAITING_SHIPMENT',
       amount: orderData.amount || 0,
       currency: orderData.currency || 'TWD',
       isPaid: orderData.isPaid || false,
