@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 const Dashboard = () => import('@/views/Dashboard.vue')
 const OrderList = () => import('@/views/OrderList.vue')
+const UiShowcase = () => import('@/views/UiShowcase.vue')
 
 const routes = [
   {
@@ -9,6 +10,12 @@ const routes = [
     name: 'Dashboard',
     component: Dashboard,
     meta: { title: 'Dashboard' }
+  },
+  {
+    path: '/ui-showcase',
+    name: 'UiShowcase',
+    component: UiShowcase,
+    meta: { title: 'UI Showcase' }
   },
   {
     path: '/orders/:category',

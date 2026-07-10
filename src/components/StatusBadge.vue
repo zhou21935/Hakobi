@@ -1,9 +1,7 @@
 <template>
   <span
-    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white"
-    :style="{ backgroundColor: statusColor }"
+    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-badge-status-bg text-badge-status-text"
   >
-    <span class="w-2 h-2 rounded-full opacity-80" :style="{ backgroundColor: statusColor }"></span>
     {{ statusLabel }}
   </span>
 </template>
@@ -26,9 +24,5 @@ const statusInfo = computed(() => {
 
 const statusLabel = computed(() => {
   return statusInfo.value?.label || props.status
-})
-
-const statusColor = computed(() => {
-  return statusInfo.value?.color || '#000000'
 })
 </script>

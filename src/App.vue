@@ -3,7 +3,7 @@ import AppSidebar from '@/components/AppSidebar.vue'
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-slate-50">
+  <div class="flex min-h-screen bg-page-bg">
     <!-- Sidebar -->
     <AppSidebar />
 

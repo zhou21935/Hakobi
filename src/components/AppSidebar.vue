@@ -1,9 +1,18 @@
 <template>
-  <aside class="fixed left-0 top-0 h-screen w-64 bg-slate-900 text-white shadow-lg">
+  <aside
+    class="fixed left-0 top-0 h-screen w-64 bg-gradient-to-br from-sidebar-from to-sidebar-to text-ink shadow-lg border-r border-sidebar-border"
+  >
     <!-- Logo -->
-    <div class="px-6 py-8 border-b border-slate-700">
-      <h1 class="text-2xl font-bold text-white">Hakobi</h1>
-      <p class="text-sm text-slate-400 mt-1">Orders Management</p>
+    <div class="px-6 py-8 border-b border-sidebar-border flex items-center gap-3">
+      <div
+        class="w-10 h-10 rounded-logo bg-gradient-to-br from-primary-from to-primary-to flex items-center justify-center text-lg shadow-emphasis shrink-0"
+      >
+        📦
+      </div>
+      <div>
+        <h1 class="text-xl font-heading font-bold text-ink">Hakobi</h1>
+        <p class="text-xs text-ink-muted mt-0.5">Orders Management</p>
+      </div>
     </div>
 
     <!-- Navigation Menu -->
@@ -12,24 +21,40 @@
         <li>
           <router-link
             to="/"
-            class="block px-4 py-2 rounded-lg text-slate-100 hover:bg-slate-800 transition-colors"
-            :class="{ 'bg-slate-700': isActive('/') }"
+            class="flex items-center gap-3 px-4 py-2 rounded-full text-ink hover:bg-white/50 transition-colors"
+            :class="isActive('/') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
           >
             📊 Dashboard
           </router-link>
         </li>
 
+        <li>
+          <router-link
+            to="/ui-showcase"
+            class="flex items-center gap-3 px-4 py-2 rounded-full text-ink hover:bg-white/50 transition-colors"
+            :class="isActive('/ui-showcase') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
+          >
+            🎨 UI 元件展示
+          </router-link>
+        </li>
+
         <!-- Orders by Category -->
         <li class="pt-4">
-          <p class="px-4 py-2 text-sm font-semibold text-slate-400 uppercase">Orders</p>
+          <p class="px-4 py-2 text-sm font-heading font-semibold text-ink-muted uppercase">Orders</p>
           <ul class="space-y-1 ml-2">
-            <li v-for="category in categories" :key="category">
+            <li v-for="(category, index) in categories" :key="category">
               <router-link
                 :to="`/orders/${category}`"
-                class="block px-4 py-2 rounded-lg text-sm text-slate-100 hover:bg-slate-800 transition-colors capitalize"
-                :class="{ 'bg-slate-700': isActive(`/orders/${category}`) }"
+                class="flex items-center gap-3 px-4 py-2 rounded-full text-sm text-ink hover:bg-white/50 transition-colors capitalize"
+                :class="isActive(`/orders/${category}`) ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
               >
-                📦 {{ category }}
+                <span
+                  class="w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0"
+                  :class="isActive(`/orders/${category}`) ? 'bg-white/25' : iconCycleClass(index)"
+                >
+                  📦
+                </span>
+                {{ category }}
               </router-link>
             </li>
           </ul>
@@ -38,19 +63,22 @@
     </nav>
 
     <!-- Footer -->
-    <div class="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-slate-700">
-      <p class="text-xs text-slate-500">© 2026 Hakobi</p>
+    <div class="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-sidebar-border">
+      <p class="text-xs text-ink-muted">© 2026 Hakobi</p>
     </div>
   </aside>
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 
 const categories = ['preorder', 'agent', 'parcel', 'merch', 'manga']
+
+const iconCycleClasses = ['bg-icon-cycle-1', 'bg-icon-cycle-2', 'bg-icon-cycle-3', 'bg-icon-cycle-4', 'bg-icon-cycle-5']
+
+const iconCycleClass = (index) => iconCycleClasses[index % iconCycleClasses.length]
 
 const isActive = (path) => {
   return route.path === path
