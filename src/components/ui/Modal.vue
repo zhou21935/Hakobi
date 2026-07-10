@@ -2,19 +2,19 @@
   <Teleport to="body">
     <div
       v-if="modelValue"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-8"
       @click.self="close"
     >
-      <div class="w-full max-w-md rounded-card bg-white shadow-card text-ink">
-        <div v-if="title" class="px-5 py-4 border-b border-card-border">
+      <div class="w-full max-w-md max-h-[85vh] rounded-card bg-white shadow-card text-ink flex flex-col">
+        <div v-if="title" class="px-5 py-4 shrink-0">
           <h2 class="text-lg font-heading font-semibold text-ink">{{ title }}</h2>
         </div>
 
-        <div class="px-5 py-4">
+        <div class="px-5 py-4 flex-1 overflow-y-auto">
           <slot />
         </div>
 
-        <div v-if="$slots.footer" class="px-5 py-4 border-t border-card-border flex justify-end gap-2">
+        <div v-if="$slots.footer" class="px-5 py-4 flex justify-end gap-2 shrink-0">
           <slot name="footer" />
         </div>
       </div>
