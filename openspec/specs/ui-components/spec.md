@@ -260,3 +260,89 @@ code:
   - .agents/skills/spectra-archive/SKILL.md
   - .agents/skills/spectra-debug/SKILL.md
 -->
+
+---
+### Requirement: UI components render using shared warm-purple design tokens
+The system SHALL provide a shared set of design tokens (color, typography, radius, shadow) defined in the Tailwind theme, and the `Button`, `Card`, `Input`, `Table`, `Modal`, and `StatusBadge` components SHALL render using these tokens instead of hardcoded neutral gray utility classes.
+
+#### Scenario: Page background and card surfaces use the warm-purple palette
+- **WHEN** any page (Dashboard, `/ui-showcase`, `/orders/:category`) is rendered
+- **THEN** the page background SHALL use the `page-bg` color token (`#FFF8F2`) and card surfaces SHALL use the `card` border-radius token (`22px`) and `card` shadow token, replacing the previous slate-based styling
+
+#### Scenario: Primary actions and selected navigation use the primary gradient
+- **WHEN** a primary-variant `Button` or the active sidebar navigation item is rendered
+- **THEN** it SHALL use a gradient background from the `primary-from` color token (`#8b6fba`) to the `primary-to` color token (`#b78fa5`) and the `emphasis` shadow token
+
+#### Scenario: Status badges use a uniform status color instead of per-status hues
+- **WHEN** a `StatusBadge` renders for any status value
+- **THEN** it SHALL use the fixed `badge-status-bg` background color token (`#F0E1EC`) and `badge-status-text` text color token (`#6a4ab5`) regardless of which status is passed, instead of the previous per-status color mapping
+
+##### Example: same badge styling across different statuses
+- **GIVEN** two `StatusBadge` instances with `status="PENDING"` and `status="SHIPPED"`
+- **WHEN** both are rendered
+- **THEN** both SHALL have identical background and text colors, differing only in label text
+
+#### Scenario: Headings render with the Baloo 2 typeface
+- **WHEN** an element using the `heading` font token is rendered (e.g. a page title or card header)
+- **THEN** its computed `font-family` SHALL include `Baloo 2`
+
+<!-- @trace
+source: restyle-warm-purple-theme
+updated: 2026-07-10
+code:
+  - .agents/skills/spectra-apply/SKILL.md
+  - .agents/skills/spectra-drift/SKILL.md
+  - .agents/skills/spectra-debug/SKILL.md
+  - src/components/ui/Card.vue
+  - .agents/skills/spectra-archive/SKILL.md
+  - src/components/AppSidebar.vue
+  - src/components/ui/Table.vue
+  - index.html
+  - src/components/ui/Modal.vue
+  - .agents/skills/spectra-propose/SKILL.md
+  - src/components/ui/Input.vue
+  - src/views/UiShowcase.vue
+  - .agents/skills/spectra-audit/SKILL.md
+  - .agents/skills/spectra-commit/SKILL.md
+  - .agents/skills/spectra-discuss/SKILL.md
+  - .agents/skills/spectra-ask/SKILL.md
+  - src/App.vue
+  - CLAUDE.md
+  - src/assets/main.css
+  - .agents/skills/spectra-ingest/SKILL.md
+  - AGENTS.md
+  - src/components/ui/Button.vue
+  - src/router/index.js
+  - src/components/StatusBadge.vue
+  - .spectra.yaml
+-->
+
+---
+### Requirement: Select component supports v-model binding over a fixed option list
+The system SHALL provide a `Select` component that supports two-way binding via `modelValue`/`update:modelValue` over a required `options` list of `{ value, label }` pairs, with an optional `label` and `disabled` state.
+
+#### Scenario: Choosing an option updates bound value
+- **WHEN** a user selects a different option in the `Select` field
+- **THEN** the component SHALL emit `update:modelValue` with the selected option's `value`
+
+#### Scenario: Disabled select cannot be changed
+- **WHEN** `disabled` is `true`
+- **THEN** the rendered select element SHALL have the `disabled` attribute and SHALL NOT emit `update:modelValue` on interaction
+
+<!-- @trace
+source: build-preorder-feature
+updated: 2026-07-10
+code:
+  - src/components/AppSidebar.vue
+  - src/views/AllOrders.vue
+  - src/components/orders/OrderFormModal.vue
+  - src/components/orders/OrderCard.vue
+  - src/main.js
+  - src/views/OrderList.vue
+  - src/router/index.js
+  - src/components/ui/Select.vue
+  - src/views/UiShowcase.vue
+  - src/views/Dashboard.vue
+  - src/components/orders/StatusFilterTabs.vue
+  - src/stores/orders.js
+-->
