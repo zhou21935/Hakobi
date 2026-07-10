@@ -1,11 +1,8 @@
 <template>
   <div class="p-8 space-y-6">
-    <div class="flex items-start justify-between gap-4 max-w-6xl">
-      <div>
-        <h1 class="text-4xl font-heading font-bold text-ink mb-2">{{ categoryLabel }}</h1>
-        <p class="text-lg text-ink-muted">管理{{ categoryLabel }}分類的訂單</p>
-      </div>
-      <Button @click="openCreateForm">+ 新增訂單</Button>
+    <div class="max-w-6xl">
+      <h1 class="text-4xl font-heading font-bold text-ink mb-2">全部訂單</h1>
+      <p class="text-lg text-ink-muted">跨分類檢視所有訂單</p>
     </div>
 
     <div class="max-w-6xl">
@@ -13,7 +10,7 @@
     </div>
 
     <div class="max-w-6xl space-y-4">
-      <p v-if="filteredOrders.length === 0" class="text-ink-muted">尚無訂單,點擊右上角「新增訂單」開始記錄。</p>
+      <p v-if="filteredOrders.length === 0" class="text-ink-muted">尚無訂單。</p>
       <OrderCard
         v-for="order in filteredOrders"
         :key="order.id"
@@ -37,43 +34,31 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { useOrdersStore, STATUSES, CATEGORY_LABELS } from '@/stores/orders'
+import { useOrdersStore, STATUSES } from '@/stores/orders'
 import Button from '@/components/ui/Button.vue'
 import Modal from '@/components/ui/Modal.vue'
 import StatusFilterTabs from '@/components/orders/StatusFilterTabs.vue'
 import OrderCard from '@/components/orders/OrderCard.vue'
 import OrderFormModal from '@/components/orders/OrderFormModal.vue'
 
-const route = useRoute()
-const category = route.params.category
-const categoryLabel = computed(() => CATEGORY_LABELS[category] || category)
-
 const store = useOrdersStore()
 
 const selectedStatus = ref(null)
 
-const categoryOrders = computed(() => store.getByCategory(category))
-
 const counts = computed(() => {
-  const result = { all: categoryOrders.value.length }
+  const result = { all: store.orders.length }
   Object.keys(STATUSES).forEach((key) => {
-    result[key] = categoryOrders.value.filter((order) => order.status === key).length
+    result[key] = store.orders.filter((order) => order.status === key).length
   })
   return result
 })
 
 const filteredOrders = computed(() => {
-  return store.getFiltered({ category, status: selectedStatus.value || undefined })
+  return store.getFiltered({ status: selectedStatus.value || undefined })
 })
 
 const isFormOpen = ref(false)
 const editingOrder = ref(null)
-
-const openCreateForm = () => {
-  editingOrder.value = null
-  isFormOpen.value = true
-}
 
 const openEditForm = (order) => {
   editingOrder.value = order
@@ -83,8 +68,6 @@ const openEditForm = (order) => {
 const handleSubmit = (payload) => {
   if (editingOrder.value) {
     store.updateOrder(editingOrder.value.id, payload)
-  } else {
-    store.addOrder({ ...payload, category })
   }
   isFormOpen.value = false
 }

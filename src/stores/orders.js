@@ -9,12 +9,23 @@ export const CATEGORIES = {
   MANGA: 'manga'
 }
 
+export const CATEGORY_LABELS = {
+  preorder: '預購商品',
+  agent: '海外代購',
+  parcel: '集運包裹',
+  merch: '追星周邊',
+  manga: '漫畫小說'
+}
+
 export const STATUSES = {
-  PENDING: { label: '待處理', color: '#FFA500' },
-  PROCESSING: { label: '處理中', color: '#1890FF' },
-  SHIPPED: { label: '已出貨', color: '#52C41A' },
-  DELIVERED: { label: '已交付', color: '#722ED1' },
-  CANCELLED: { label: '已取消', color: '#F5222D' } 
+  PENDING_PAYMENT: { label: '待付款' },
+  DEPOSIT_PAID: { label: '已付訂金' },
+  PAID: { label: '已付款' },
+  AWAITING_SHIPMENT: { label: '待出貨' },
+  CONSOLIDATING: { label: '集運中' },
+  IN_TRANSIT: { label: '運送中' },
+  ARRIVED: { label: '已抵台' },
+  COMPLETED: { label: '已完成' }
 }
 
 export const useOrdersStore = defineStore('orders', () => {
@@ -26,13 +37,17 @@ export const useOrdersStore = defineStore('orders', () => {
       category: orderData.category || '',
       name: orderData.name || '',
       platform: orderData.platform || '',
-      status: orderData.status || 'PENDING',
+      productUrl: orderData.productUrl || '',
+      status: orderData.status || 'PENDING_PAYMENT',
       amount: orderData.amount || 0,
       currency: orderData.currency || 'TWD',
       depositPaid: orderData.depositPaid || 0,
       balanceDue: orderData.balanceDue || 0,
+      orderDate: orderData.orderDate || null,
       paymentDueDate: orderData.paymentDueDate || null,
-      estimatedArrival: orderData.estimatedArrival || null,
+      estimatedShipDate: orderData.estimatedShipDate || null,
+      estimatedArrivalDate: orderData.estimatedArrivalDate || null,
+      isConsolidated: orderData.isConsolidated || false,
       trackingNumber: orderData.trackingNumber || '',
       shippingMethod: orderData.shippingMethod || '',
       notes: orderData.notes || '',
@@ -104,13 +119,10 @@ export const useOrdersStore = defineStore('orders', () => {
         merch: orders.value.filter(o => o.category === CATEGORIES.MERCH).length,
         manga: orders.value.filter(o => o.category === CATEGORIES.MANGA).length
       },
-      byStatus: {
-        pending: orders.value.filter(o => o.status === 'PENDING').length,
-        processing: orders.value.filter(o => o.status === 'PROCESSING').length,
-        shipped: orders.value.filter(o => o.status === 'SHIPPED').length,
-        delivered: orders.value.filter(o => o.status === 'DELIVERED').length,
-        cancelled: orders.value.filter(o => o.status === 'CANCELLED').length
-      },
+      byStatus: Object.keys(STATUSES).reduce((acc, key) => {
+        acc[key] = orders.value.filter(o => o.status === key).length
+        return acc
+      }, {}),
       totalAmount: orders.value.reduce((sum, order) => sum + (order.amount || 0), 0)
     }
   })

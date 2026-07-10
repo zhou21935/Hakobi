@@ -11,7 +11,7 @@
       </div>
       <div>
         <h1 class="text-xl font-heading font-bold text-ink">Hakobi</h1>
-        <p class="text-xs text-ink-muted mt-0.5">Orders Management</p>
+        <p class="text-xs text-ink-muted mt-0.5">訂單管理</p>
       </div>
     </div>
 
@@ -24,7 +24,7 @@
             class="flex items-center gap-3 px-4 py-2 rounded-full text-ink hover:bg-white/50 transition-colors"
             :class="isActive('/') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
           >
-            📊 Dashboard
+            📊 總覽
           </router-link>
         </li>
 
@@ -40,12 +40,12 @@
 
         <!-- Orders by Category -->
         <li class="pt-4">
-          <p class="px-4 py-2 text-sm font-heading font-semibold text-ink-muted uppercase">Orders</p>
+          <p class="px-4 py-2 text-sm font-heading font-semibold text-ink-muted uppercase">分類</p>
           <ul class="space-y-1 ml-2">
             <li v-for="(category, index) in categories" :key="category">
               <router-link
                 :to="`/orders/${category}`"
-                class="flex items-center gap-3 px-4 py-2 rounded-full text-sm text-ink hover:bg-white/50 transition-colors capitalize"
+                class="flex items-center gap-3 px-4 py-2 rounded-full text-sm text-ink hover:bg-white/50 transition-colors"
                 :class="isActive(`/orders/${category}`) ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
               >
                 <span
@@ -54,23 +54,34 @@
                 >
                   📦
                 </span>
-                {{ category }}
+                {{ CATEGORY_LABELS[category] }}
               </router-link>
             </li>
           </ul>
+        </li>
+
+        <li class="pt-2">
+          <router-link
+            to="/orders"
+            class="flex items-center gap-3 px-4 py-2 rounded-full text-sm text-ink hover:bg-white/50 transition-colors"
+            :class="isActive('/orders') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
+          >
+            📋 全部訂單
+          </router-link>
         </li>
       </ul>
     </nav>
 
     <!-- Footer -->
     <div class="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-sidebar-border">
-      <p class="text-xs text-ink-muted">© 2026 Hakobi</p>
+      <p class="text-xs text-ink-muted">© 2026 Hakobi 版權所有</p>
     </div>
   </aside>
 </template>
 
 <script setup>
 import { useRoute } from 'vue-router'
+import { CATEGORY_LABELS } from '@/stores/orders'
 
 const route = useRoute()
 

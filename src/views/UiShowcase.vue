@@ -59,6 +59,16 @@
     </section>
 
     <section class="max-w-6xl">
+      <h2 class="text-xl font-heading font-semibold text-ink mb-3">Select</h2>
+      <Card>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Select v-model="selectedCurrency" label="幣別" :options="currencyOptions" />
+          <Select v-model="selectedCurrency" label="幣別(disabled)" :options="currencyOptions" disabled />
+        </div>
+      </Card>
+    </section>
+
+    <section class="max-w-6xl">
       <h2 class="text-xl font-heading font-semibold text-ink mb-3">Table</h2>
       <Table :columns="tableColumns" :rows="tableRows">
         <template #cell-status="{ row }">
@@ -92,11 +102,20 @@ import Card from '@/components/ui/Card.vue'
 import Input from '@/components/ui/Input.vue'
 import Table from '@/components/ui/Table.vue'
 import Modal from '@/components/ui/Modal.vue'
+import Select from '@/components/ui/Select.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 
 const normalInput = ref('')
 const errorInput = ref('')
 const isModalOpen = ref(false)
+const selectedCurrency = ref('TWD')
+
+const currencyOptions = [
+  { value: 'TWD', label: 'TWD' },
+  { value: 'USD', label: 'USD' },
+  { value: 'KRW', label: 'KRW' },
+  { value: 'JPY', label: 'JPY' }
+]
 
 const tableColumns = [
   { key: 'name', label: '訂單' },
@@ -106,8 +125,8 @@ const tableColumns = [
 ]
 
 const tableRows = [
-  { id: 1, name: '航海王 第 108 集', platform: 'Amazon', amount: 320, status: 'PENDING' },
-  { id: 2, name: '鬼滅之刃周邊', platform: '樂天', amount: 1580, status: 'PROCESSING' },
-  { id: 3, name: '代購包裹 #A392', platform: 'Mercari', amount: 4200, status: 'SHIPPED' }
+  { id: 1, name: '航海王 第 108 集', platform: 'Amazon', amount: 320, status: 'PENDING_PAYMENT' },
+  { id: 2, name: '鬼滅之刃周邊', platform: '樂天', amount: 1580, status: 'CONSOLIDATING' },
+  { id: 3, name: '代購包裹 #A392', platform: 'Mercari', amount: 4200, status: 'COMPLETED' }
 ]
 </script>
