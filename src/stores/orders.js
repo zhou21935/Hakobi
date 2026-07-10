@@ -18,10 +18,6 @@ export const CATEGORY_LABELS = {
 }
 
 export const STATUSES = {
-  PENDING_PAYMENT: { label: '待付款' },
-  DEPOSIT_PAID: { label: '已付訂金' },
-  PAID: { label: '已付款' },
-  AWAITING_SHIPMENT: { label: '待出貨' },
   CONSOLIDATING: { label: '集運中' },
   IN_TRANSIT: { label: '運送中' },
   ARRIVED: { label: '已抵台' },
@@ -38,10 +34,10 @@ export const useOrdersStore = defineStore('orders', () => {
       name: orderData.name || '',
       platform: orderData.platform || '',
       productUrl: orderData.productUrl || '',
-      status: orderData.status || 'PENDING_PAYMENT',
+      status: orderData.status || 'CONSOLIDATING',
       amount: orderData.amount || 0,
       currency: orderData.currency || 'TWD',
-      depositPaid: orderData.depositPaid || 0,
+      isPaid: orderData.isPaid || false,
       balanceDue: orderData.balanceDue || 0,
       orderDate: orderData.orderDate || null,
       paymentDueDate: orderData.paymentDueDate || null,

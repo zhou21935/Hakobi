@@ -23,7 +23,7 @@ const store = useOrdersStore()
 const stats = computed(() => store.stats)
 
 const statTiles = computed(() => [
-  { key: 'AWAITING_SHIPMENT', label: '待出貨', value: stats.value.byStatus.AWAITING_SHIPMENT ?? 0 },
+  { key: 'IN_TRANSIT', label: '運送中', value: stats.value.byStatus.IN_TRANSIT ?? 0 },
   { key: 'CONSOLIDATING', label: '集運中', value: stats.value.byStatus.CONSOLIDATING ?? 0 },
   { key: 'COMPLETED', label: '已完成', value: stats.value.byStatus.COMPLETED ?? 0 }
 ])

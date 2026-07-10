@@ -6,8 +6,8 @@
       <Input v-model="form.productUrl" label="商品連結" placeholder="https://" class="sm:col-span-2" />
       <Input v-model="form.amount" type="number" label="金額" placeholder="0" :error="amountError" />
       <Select v-model="form.currency" label="幣別" :options="currencyOptions" />
-      <Input v-model="form.depositPaid" type="number" label="訂金" placeholder="0" />
-      <Select v-model="form.status" label="狀態" :options="statusOptions" />
+      <Checkbox v-model="form.isPaid" label="已付款" />
+      <Select v-model="form.status" label="貨物狀態" :options="statusOptions" />
       <Input v-model="form.orderDate" type="date" label="下單日期" />
       <Input v-model="form.estimatedShipDate" type="date" label="預計出貨日期" />
       <Input v-model="form.estimatedArrivalDate" type="date" label="預計到貨日期" />
@@ -27,6 +27,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Input from '@/components/ui/Input.vue'
 import Select from '@/components/ui/Select.vue'
+import Checkbox from '@/components/ui/Checkbox.vue'
 import Button from '@/components/ui/Button.vue'
 import { STATUSES } from '@/stores/orders'
 
@@ -68,8 +69,8 @@ const emptyForm = () => ({
   productUrl: '',
   amount: '',
   currency: 'TWD',
-  depositPaid: '',
-  status: 'PENDING_PAYMENT',
+  isPaid: false,
+  status: 'CONSOLIDATING',
   orderDate: '',
   estimatedShipDate: '',
   estimatedArrivalDate: '',
@@ -91,8 +92,8 @@ const resetForm = () => {
       productUrl: props.order.productUrl || '',
       amount: props.order.amount ?? '',
       currency: props.order.currency || 'TWD',
-      depositPaid: props.order.depositPaid ?? '',
-      status: props.order.status || 'PENDING_PAYMENT',
+      isPaid: props.order.isPaid ?? false,
+      status: props.order.status || 'CONSOLIDATING',
       orderDate: props.order.orderDate || '',
       estimatedShipDate: props.order.estimatedShipDate || '',
       estimatedArrivalDate: props.order.estimatedArrivalDate || '',
@@ -127,7 +128,7 @@ const handleSubmit = () => {
     productUrl: form.productUrl,
     amount: Number(form.amount),
     currency: form.currency,
-    depositPaid: form.depositPaid === '' ? 0 : Number(form.depositPaid),
+    isPaid: form.isPaid,
     status: form.status,
     orderDate: form.orderDate || null,
     estimatedShipDate: form.estimatedShipDate || null,
