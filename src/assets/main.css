@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-page-bg: #fff8f2;
+  --color-sidebar-from: #fbefe9;
+  --color-sidebar-to: #f6e1ec;
+  --color-sidebar-border: #f3d9e6;
+  --color-card-border: #f3e4ec;
+  --color-card-border-accent: #e3c9e8;
+  --color-primary-from: #8b6fba;
+  --color-primary-to: #b78fa5;
+  --color-accentcard-from: #f6e1ec;
+  --color-accentcard-to: #ede1f5;
+  --color-badge-category-bg: #f5e7de;
+  --color-badge-status-bg: #f0e1ec;
+  --color-badge-status-text: #6a4ab5;
+  --color-icon-cycle-1: #f5e7de;
+  --color-icon-cycle-2: #f0e1d6;
+  --color-icon-cycle-3: #f6e1ec;
+  --color-icon-cycle-4: #ede1f5;
+  --color-icon-cycle-5: #e3d9f2;
+  --color-ink: #5b3f63;
+  --color-ink-muted: #c99bb8;
+
+  --font-heading: 'Baloo 2', system-ui, sans-serif;
+  --font-sans: 'Noto Sans TC', system-ui, sans-serif;
+
+  --radius-card: 22px;
+  --radius-logo: 16px;
+
+  --shadow-card: 0 8px 24px -6px rgba(183, 143, 165, 0.14);
+  --shadow-emphasis: 0 10px 28px -6px rgba(139, 111, 186, 0.35);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-page-bg);
+  color: var(--color-ink);
+}

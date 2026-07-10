@@ -1,7 +1,16 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+import AppSidebar from '@/components/AppSidebar.vue'
 </script>
 
 <template>
-  <HelloWorld />
+  <div class="flex min-h-screen bg-page-bg">
+    <!-- Sidebar -->
+    <AppSidebar />
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-64">
+      <router-view />
+    </main>
+  </div>
 </template>
+
