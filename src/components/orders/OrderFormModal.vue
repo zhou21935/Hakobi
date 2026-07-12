@@ -17,13 +17,21 @@
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Input v-model="form.orderDate" type="date" label="下單日期" />
         <Select v-model="form.status" label="貨物狀態" :options="statusOptions" />
-        <Checkbox v-model="form.isConsolidated" label="送往集運倉" />
+        <Checkbox v-model="form.isPreorder" label="預購商品" />
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input v-model="form.estimatedShipDate" type="date" label="預計出貨日期" />
         <Input v-model="form.estimatedArrivalDate" type="date" label="預計到貨日期" />
       </div>
+
+      <MultiSelect
+        v-model="form.productCategories"
+        label="商品分類"
+        placeholder="請選擇商品分類"
+        :options="productCategoryOptions"
+        :error="productCategoriesError"
+      />
 
       <Input v-model="form.notes" label="備註" placeholder="選填" />
     </div>
@@ -42,7 +50,8 @@ import Input from '@/components/ui/Input.vue'
 import Select from '@/components/ui/Select.vue'
 import Checkbox from '@/components/ui/Checkbox.vue'
 import Button from '@/components/ui/Button.vue'
-import { STATUSES } from '@/stores/orders'
+import MultiSelect from '@/components/ui/MultiSelect.vue'
+import { STATUSES, PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS } from '@/stores/orders'
 
 const props = defineProps({
   modelValue: {
@@ -71,6 +80,11 @@ const statusOptions = Object.keys(STATUSES).map((key) => ({
   label: STATUSES[key].label
 }))
 
+const productCategoryOptions = Object.values(PRODUCT_CATEGORIES).map((value) => ({
+  value,
+  label: PRODUCT_CATEGORY_LABELS[value]
+}))
+
 const emptyForm = () => ({
   name: '',
   platform: '',
@@ -82,17 +96,20 @@ const emptyForm = () => ({
   orderDate: '',
   estimatedShipDate: '',
   estimatedArrivalDate: '',
-  isConsolidated: false,
+  isPreorder: false,
+  productCategories: [],
   notes: ''
 })
 
 const form = reactive(emptyForm())
 const nameError = ref('')
 const amountError = ref('')
+const productCategoriesError = ref('')
 
 const resetForm = () => {
   nameError.value = ''
   amountError.value = ''
+  productCategoriesError.value = ''
   if (props.order) {
     Object.assign(form, emptyForm(), {
       name: props.order.name || '',
@@ -105,7 +122,8 @@ const resetForm = () => {
       orderDate: props.order.orderDate || '',
       estimatedShipDate: props.order.estimatedShipDate || '',
       estimatedArrivalDate: props.order.estimatedArrivalDate || '',
-      isConsolidated: props.order.isConsolidated ?? false,
+      isPreorder: props.order.isPreorder ?? false,
+      productCategories: [...(props.order.productCategories || [])],
       notes: props.order.notes || ''
     })
   } else {
@@ -125,8 +143,9 @@ watch(
 const handleSubmit = () => {
   nameError.value = form.name.trim() === '' ? '商品名稱不可為空' : ''
   amountError.value = Number(form.amount) > 0 ? '' : '金額須為大於 0 的數字'
+  productCategoriesError.value = form.productCategories.length === 0 ? '請至少選擇一項商品分類' : ''
 
-  if (nameError.value || amountError.value) {
+  if (nameError.value || amountError.value || productCategoriesError.value) {
     return
   }
 
@@ -141,7 +160,8 @@ const handleSubmit = () => {
     orderDate: form.orderDate || null,
     estimatedShipDate: form.estimatedShipDate || null,
     estimatedArrivalDate: form.estimatedArrivalDate || null,
-    isConsolidated: form.isConsolidated,
+    isPreorder: form.isPreorder,
+    productCategories: form.productCategories,
     notes: form.notes
   })
 }

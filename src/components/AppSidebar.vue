@@ -85,7 +85,7 @@ import { CATEGORY_LABELS } from '@/stores/orders'
 
 const route = useRoute()
 
-const categories = ['preorder', 'agent', 'parcel', 'merch', 'manga']
+const categories = ['agent', 'parcel']
 
 const iconCycleClasses = ['bg-icon-cycle-1', 'bg-icon-cycle-2', 'bg-icon-cycle-3', 'bg-icon-cycle-4', 'bg-icon-cycle-5']
 

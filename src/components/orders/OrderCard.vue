@@ -2,8 +2,21 @@
   <Card>
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0">
-        <div class="mb-2">
+        <div class="mb-2 flex flex-wrap items-center gap-1.5">
           <StatusBadge :status="order.status" />
+          <span
+            v-if="order.isPreorder"
+            class="px-2 py-0.5 rounded-full bg-badge-category-bg text-xs text-ink"
+          >
+            預購
+          </span>
+          <span
+            v-for="tag in productCategoryTags"
+            :key="tag.value"
+            class="px-2 py-0.5 rounded-full bg-badge-category-bg text-xs text-ink"
+          >
+            {{ tag.label }}
+          </span>
         </div>
         <h3 class="font-heading font-semibold text-ink truncate">{{ order.name }}</h3>
         <p class="text-sm text-ink-muted mt-1">
@@ -42,6 +55,7 @@
 import { computed } from 'vue'
 import Card from '@/components/ui/Card.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS } from '@/stores/orders'
 
 const props = defineProps({
   order: {
@@ -60,4 +74,10 @@ const CURRENCY_SYMBOLS = {
 }
 
 const currencySymbol = computed(() => CURRENCY_SYMBOLS[props.order.currency] || '')
+
+const productCategoryTags = computed(() =>
+  Object.values(PRODUCT_CATEGORIES)
+    .filter((value) => (props.order.productCategories || []).includes(value))
+    .map((value) => ({ value, label: PRODUCT_CATEGORY_LABELS[value] }))
+)
 </script>
