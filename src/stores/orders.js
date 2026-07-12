@@ -2,19 +2,25 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export const CATEGORIES = {
-  PREORDER: 'preorder',
   AGENT: 'agent',
-  PARCEL: 'parcel',
-  MERCH: 'merch',
-  MANGA: 'manga'
+  PARCEL: 'parcel'
 }
 
 export const CATEGORY_LABELS = {
-  preorder: '預購商品',
   agent: '海外代購',
-  parcel: '集運包裹',
-  merch: '追星周邊',
-  manga: '漫畫小說'
+  parcel: '集運包裹'
+}
+
+export const PRODUCT_CATEGORIES = {
+  MERCH: 'merch',
+  BOOK: 'book',
+  OTHER: 'other'
+}
+
+export const PRODUCT_CATEGORY_LABELS = {
+  merch: '周邊',
+  book: '書籍',
+  other: '其他'
 }
 
 export const STATUSES = {
@@ -44,7 +50,8 @@ export const useOrdersStore = defineStore('orders', () => {
       paymentDueDate: orderData.paymentDueDate || null,
       estimatedShipDate: orderData.estimatedShipDate || null,
       estimatedArrivalDate: orderData.estimatedArrivalDate || null,
-      isConsolidated: orderData.isConsolidated || false,
+      isPreorder: orderData.isPreorder || false,
+      productCategories: orderData.productCategories || [],
       trackingNumber: orderData.trackingNumber || '',
       shippingMethod: orderData.shippingMethod || '',
       notes: orderData.notes || '',
@@ -110,11 +117,8 @@ export const useOrdersStore = defineStore('orders', () => {
     return {
       total: orders.value.length,
       byCategory: {
-        preorder: orders.value.filter(o => o.category === CATEGORIES.PREORDER).length,
         agent: orders.value.filter(o => o.category === CATEGORIES.AGENT).length,
-        parcel: orders.value.filter(o => o.category === CATEGORIES.PARCEL).length,
-        merch: orders.value.filter(o => o.category === CATEGORIES.MERCH).length,
-        manga: orders.value.filter(o => o.category === CATEGORIES.MANGA).length
+        parcel: orders.value.filter(o => o.category === CATEGORIES.PARCEL).length
       },
       byStatus: Object.keys(STATUSES).reduce((acc, key) => {
         acc[key] = orders.value.filter(o => o.status === key).length
