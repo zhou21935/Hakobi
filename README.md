@@ -1,5 +1,42 @@
-# Vue 3 + Vite
+# Hakobi
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+訂單 / 預購管理系統。使用 Vue 3 + Vite 建置，透過 Pinia 管理訂單狀態，以 Tailwind CSS 打造介面。
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## 技術棧
+
+- [Vue 3](https://vuejs.org/)（`<script setup>` SFC）
+- [Vite](https://vite.dev/)
+- [Vue Router](https://router.vuejs.org/)
+- [Pinia](https://pinia.vuejs.org/)（含 `pinia-plugin-persistedstate`）
+- [Tailwind CSS](https://tailwindcss.com/)
+
+## 開發
+
+```sh
+npm install
+npm run dev       # 啟動開發伺服器
+npm run build     # 建置正式版本
+npm run preview   # 預覽建置結果
+```
+
+## 專案結構
+
+```
+src/
+├── components/
+│   ├── ui/         # 通用 UI 元件（Button、Card、Modal…）
+│   └── orders/     # 訂單相關元件（OrderCard、OrderFormModal…）
+├── views/          # 路由頁面（Dashboard、AllOrders、OrderList、UiShowcase）
+├── stores/          # Pinia store（orders）
+├── router/          # 路由設定
+└── assets/          # 全域樣式
+```
+
+## Spec-Driven Development
+
+本專案使用 [Spectra](https://github.com/spectra-app/spectra) 進行 Spec-Driven Development：
+
+- `openspec/specs/` — 目前生效的功能規格
+- `openspec/changes/` — 變更提案與已封存的變更歷程
+
+詳見專案根目錄的 `CLAUDE.md` / `AGENTS.md`。
