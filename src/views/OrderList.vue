@@ -9,6 +9,10 @@
     </div>
 
     <div class="max-w-6xl">
+      <SearchSortControls v-model:search="searchQuery" v-model:sort="sortOption" />
+    </div>
+
+    <div class="max-w-6xl">
       <StatusFilterTabs v-model="selectedStatus" :counts="counts" />
     </div>
 
@@ -36,12 +40,13 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useOrdersStore, STATUSES, CATEGORY_LABELS } from '@/stores/orders'
 import Button from '@/components/ui/Button.vue'
 import Modal from '@/components/ui/Modal.vue'
 import StatusFilterTabs from '@/components/orders/StatusFilterTabs.vue'
+import SearchSortControls from '@/components/orders/SearchSortControls.vue'
 import OrderCard from '@/components/orders/OrderCard.vue'
 import OrderFormModal from '@/components/orders/OrderFormModal.vue'
 
@@ -52,6 +57,13 @@ const categoryLabel = computed(() => CATEGORY_LABELS[category.value] || category
 const store = useOrdersStore()
 
 const selectedStatus = ref(null)
+const searchQuery = ref('')
+const sortOption = ref('')
+
+watch(category, () => {
+  searchQuery.value = ''
+  sortOption.value = ''
+})
 
 const categoryOrders = computed(() => store.getByCategory(category.value))
 
@@ -64,7 +76,12 @@ const counts = computed(() => {
 })
 
 const filteredOrders = computed(() => {
-  return store.getFiltered({ category: category.value, status: selectedStatus.value || undefined })
+  return store.getFiltered({
+    category: category.value,
+    status: selectedStatus.value || undefined,
+    search: searchQuery.value || undefined,
+    sort: sortOption.value || undefined
+  })
 })
 
 const isFormOpen = ref(false)

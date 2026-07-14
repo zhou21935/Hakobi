@@ -32,6 +32,15 @@ export const STATUSES = {
   COMPLETED: { label: '已完成' }
 }
 
+const compareOrderDate = (a, b, direction) => {
+  const aHasDate = !!a.orderDate
+  const bHasDate = !!b.orderDate
+  if (!aHasDate && !bHasDate) return 0
+  if (!aHasDate) return 1
+  if (!bHasDate) return -1
+  return direction * a.orderDate.localeCompare(b.orderDate)
+}
+
 export const useOrdersStore = defineStore('orders', () => {
   const orders = ref([])
 
@@ -101,18 +110,25 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   })
 
+  const SORT_COMPARATORS = {
+    'amount-asc': (a, b) => (a.amount || 0) - (b.amount || 0),
+    'amount-desc': (a, b) => (b.amount || 0) - (a.amount || 0),
+    'date-asc': (a, b) => compareOrderDate(a, b, 1),
+    'date-desc': (a, b) => compareOrderDate(a, b, -1)
+  }
+
   const getFiltered = computed(() => {
     return (filters) => {
       let result = orders.value
-      
+
       if (filters.category) {
         result = result.filter(order => order.category === filters.category)
       }
-      
+
       if (filters.status) {
         result = result.filter(order => order.status === filters.status)
       }
-      
+
       if (filters.search) {
         const searchLower = filters.search.toLowerCase()
         result = result.filter(order =>
@@ -120,7 +136,12 @@ export const useOrdersStore = defineStore('orders', () => {
           order.notes?.toLowerCase().includes(searchLower)
         )
       }
-      
+
+      const comparator = SORT_COMPARATORS[filters.sort]
+      if (comparator) {
+        result = [...result].sort(comparator)
+      }
+
       return result
     }
   })
