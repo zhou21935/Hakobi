@@ -52,6 +52,7 @@ import Checkbox from '@/components/ui/Checkbox.vue'
 import Button from '@/components/ui/Button.vue'
 import MultiSelect from '@/components/ui/MultiSelect.vue'
 import { STATUSES, PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS } from '@/stores/orders'
+import { normalizeOrderInput, validateOrder } from '@/domain/orderValidation'
 
 const props = defineProps({
   modelValue: {
@@ -141,19 +142,21 @@ watch(
 )
 
 const handleSubmit = () => {
-  nameError.value = form.name.trim() === '' ? '商品名稱不可為空' : ''
-  amountError.value = Number(form.amount) > 0 ? '' : '金額須為大於 0 的數字'
-  productCategoriesError.value = form.productCategories.length === 0 ? '請至少選擇一項商品分類' : ''
+  const normalized = normalizeOrderInput(form)
+  const { isValid, errors } = validateOrder(normalized)
 
-  if (nameError.value || amountError.value || productCategoriesError.value) {
+  nameError.value = errors.name || ''
+  amountError.value = errors.amount || ''
+  productCategoriesError.value = errors.productCategories || ''
+
+  if (!isValid) {
     return
   }
 
   emit('submit', {
-    name: form.name.trim(),
+    ...normalized,
     platform: form.platform,
     productUrl: form.productUrl,
-    amount: Number(form.amount),
     currency: form.currency,
     isPaid: form.isPaid,
     status: form.status,
@@ -161,7 +164,6 @@ const handleSubmit = () => {
     estimatedShipDate: form.estimatedShipDate || null,
     estimatedArrivalDate: form.estimatedArrivalDate || null,
     isPreorder: form.isPreorder,
-    productCategories: form.productCategories,
     notes: form.notes
   })
 }
