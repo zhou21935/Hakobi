@@ -89,3 +89,48 @@ describe('OrderList category route sync', () => {
     wrapper.unmount()
   })
 })
+
+describe('OrderList search and sort', () => {
+  it('filters the list by search keyword', async () => {
+    store.addOrder({ name: 'Widget Alpha', category: 'agent', amount: 10, productCategories: ['merch'] })
+    store.addOrder({ name: 'Gadget Beta', category: 'agent', amount: 20, productCategories: ['merch'] })
+
+    const wrapper = mountOrderList()
+    await wrapper.get('input[placeholder="搜尋名稱或備註"]').setValue('Widget')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Widget Alpha')
+    expect(wrapper.text()).not.toContain('Gadget Beta')
+
+    wrapper.unmount()
+  })
+
+  it('sorts the list by amount when a sort option is selected', async () => {
+    store.addOrder({ name: 'high', category: 'agent', amount: 30, productCategories: ['merch'] })
+    store.addOrder({ name: 'low', category: 'agent', amount: 10, productCategories: ['merch'] })
+
+    const wrapper = mountOrderList()
+    await wrapper.get('select').setValue('amount-asc')
+    await wrapper.vm.$nextTick()
+
+    const names = wrapper.findAll('h3').map((h) => h.text())
+    expect(names).toEqual(['low', 'high'])
+
+    wrapper.unmount()
+  })
+
+  it('resets search and sort to defaults when navigating to a different category route', async () => {
+    const wrapper = mountOrderList()
+    await wrapper.get('input[placeholder="搜尋名稱或備註"]').setValue('some keyword')
+    await wrapper.get('select').setValue('amount-asc')
+    await wrapper.vm.$nextTick()
+
+    await router.push('/orders/parcel')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('input[placeholder="搜尋名稱或備註"]').element.value).toBe('')
+    expect(wrapper.get('select').element.value).toBe('')
+
+    wrapper.unmount()
+  })
+})

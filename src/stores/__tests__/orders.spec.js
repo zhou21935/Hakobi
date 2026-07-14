@@ -85,6 +85,76 @@ describe('addOrder validation', () => {
   })
 })
 
+describe('getFiltered sort', () => {
+  it('sorts by amount ascending', () => {
+    const store = useOrdersStore()
+    store.addOrder({ name: 'c', amount: 30, productCategories: ['merch'] })
+    store.addOrder({ name: 'a', amount: 10, productCategories: ['merch'] })
+    store.addOrder({ name: 'b', amount: 20, productCategories: ['merch'] })
+
+    const result = store.getFiltered({ sort: 'amount-asc' })
+
+    expect(result.map((o) => o.amount)).toEqual([10, 20, 30])
+  })
+
+  it('sorts by amount descending', () => {
+    const store = useOrdersStore()
+    store.addOrder({ name: 'c', amount: 30, productCategories: ['merch'] })
+    store.addOrder({ name: 'a', amount: 10, productCategories: ['merch'] })
+    store.addOrder({ name: 'b', amount: 20, productCategories: ['merch'] })
+
+    const result = store.getFiltered({ sort: 'amount-desc' })
+
+    expect(result.map((o) => o.amount)).toEqual([30, 20, 10])
+  })
+
+  it('returns the unsorted filtered order when sort is omitted or not a recognized value', () => {
+    const store = useOrdersStore()
+    store.addOrder({ name: 'c', amount: 30, productCategories: ['merch'] })
+    store.addOrder({ name: 'a', amount: 10, productCategories: ['merch'] })
+    store.addOrder({ name: 'b', amount: 20, productCategories: ['merch'] })
+
+    const withoutSort = store.getFiltered({})
+    const withInvalidSort = store.getFiltered({ sort: 'not-a-real-option' })
+
+    expect(withoutSort.map((o) => o.name)).toEqual(['c', 'a', 'b'])
+    expect(withInvalidSort.map((o) => o.name)).toEqual(['c', 'a', 'b'])
+  })
+
+  it('does not mutate the underlying orders array order', () => {
+    const store = useOrdersStore()
+    store.addOrder({ name: 'c', amount: 30, productCategories: ['merch'] })
+    store.addOrder({ name: 'a', amount: 10, productCategories: ['merch'] })
+    store.addOrder({ name: 'b', amount: 20, productCategories: ['merch'] })
+
+    store.getFiltered({ sort: 'amount-asc' })
+
+    expect(store.orders.map((o) => o.name)).toEqual(['c', 'a', 'b'])
+  })
+
+  it('sorts by orderDate ascending, with orders missing an orderDate placed last', () => {
+    const store = useOrdersStore()
+    store.addOrder({ name: 'no-date', amount: 10, productCategories: ['merch'], orderDate: '' })
+    store.addOrder({ name: 'later', amount: 10, productCategories: ['merch'], orderDate: '2026-02-10' })
+    store.addOrder({ name: 'earlier', amount: 10, productCategories: ['merch'], orderDate: '2026-01-05' })
+
+    const result = store.getFiltered({ sort: 'date-asc' })
+
+    expect(result.map((o) => o.name)).toEqual(['earlier', 'later', 'no-date'])
+  })
+
+  it('sorts by orderDate descending, with orders missing an orderDate still placed last', () => {
+    const store = useOrdersStore()
+    store.addOrder({ name: 'no-date', amount: 10, productCategories: ['merch'], orderDate: '' })
+    store.addOrder({ name: 'later', amount: 10, productCategories: ['merch'], orderDate: '2026-02-10' })
+    store.addOrder({ name: 'earlier', amount: 10, productCategories: ['merch'], orderDate: '2026-01-05' })
+
+    const result = store.getFiltered({ sort: 'date-desc' })
+
+    expect(result.map((o) => o.name)).toEqual(['later', 'earlier', 'no-date'])
+  })
+})
+
 describe('updateOrder validation', () => {
   it('rejects an update that would make the name empty and leaves the order unchanged', () => {
     const store = useOrdersStore()

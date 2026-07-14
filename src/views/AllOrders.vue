@@ -5,6 +5,10 @@
       <p class="text-base md:text-lg text-ink-muted">跨分類檢視所有訂單</p>
     </div>
 
+    <div class="max-w-6xl">
+      <SearchSortControls v-model:search="searchQuery" v-model:sort="sortOption" />
+    </div>
+
     <div class="max-w-6xl flex flex-col md:flex-row gap-3">
       <StatusFilterTabs v-model="selectedStatus" :counts="counts" />
     </div>
@@ -38,12 +42,15 @@ import { useOrdersStore, STATUSES } from '@/stores/orders'
 import Button from '@/components/ui/Button.vue'
 import Modal from '@/components/ui/Modal.vue'
 import StatusFilterTabs from '@/components/orders/StatusFilterTabs.vue'
+import SearchSortControls from '@/components/orders/SearchSortControls.vue'
 import OrderCard from '@/components/orders/OrderCard.vue'
 import OrderFormModal from '@/components/orders/OrderFormModal.vue'
 
 const store = useOrdersStore()
 
 const selectedStatus = ref(null)
+const searchQuery = ref('')
+const sortOption = ref('')
 
 const counts = computed(() => {
   const result = { all: store.orders.length }
@@ -54,7 +61,11 @@ const counts = computed(() => {
 })
 
 const filteredOrders = computed(() => {
-  return store.getFiltered({ status: selectedStatus.value || undefined })
+  return store.getFiltered({
+    status: selectedStatus.value || undefined,
+    search: searchQuery.value || undefined,
+    sort: sortOption.value || undefined
+  })
 })
 
 const isFormOpen = ref(false)

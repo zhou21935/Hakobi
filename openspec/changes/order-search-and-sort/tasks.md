@@ -1,0 +1,18 @@
+## 1. Store 排序邏輯
+
+- [x] 1.1 依需求「Order list pages support sorting by date or amount」與設計決策「getFiltered 新增 sort 參數，值為 'date-asc' | 'date-desc' | 'amount-asc' | 'amount-desc'，套用於過濾後的結果、不修改 orders.value」，修改 `src/stores/orders.js` 的 `getFiltered`，在既有 `category`/`status`/`search` 過濾完成後，依 `filters.sort` 對結果做複製後排序（`[...result].sort(...)`，不得使用會原地修改 `orders.value` 的排序方式）：`'amount-asc'`/`'amount-desc'` 依 `amount` 數字排序；`'sort'` 未提供或不是四個合法值之一時，回傳未排序的過濾結果；驗證：`src/stores/__tests__/orders.spec.js` 新增測試，建立金額分別為 30、10、20 的三筆訂單，`getFiltered({ sort: 'amount-asc' })` 回傳順序為 10、20、30，`getFiltered({ sort: 'amount-desc' })` 回傳順序為 30、20、10；`getFiltered({ sort: 'not-a-real-option' })` 回傳與未提供 `sort` 時相同的原始過濾順序；呼叫 `getFiltered` 後 `store.orders` 陣列本身的順序不變
+- [x] 1.2 依需求「Orders missing an order date sort to the end regardless of direction」與設計決策「排序依據的「日期」使用 orderDate（下單日期），缺值的訂單排序時固定排在最後」，於 `getFiltered` 實作 `'date-asc'`/`'date-desc'` 排序：依 `orderDate` 字串排序（`YYYY-MM-DD` 格式字串比較即為時間先後），`orderDate` 為空字串、`null`、或 `undefined` 的訂單一律排在結果陣列最後，不論 asc/desc；驗證：`orders.spec.js` 新增測試，建立三筆訂單，`orderDate` 分別為 `'2026-02-10'`、`'2026-01-05'`、空字串，`getFiltered({ sort: 'date-asc' })` 回傳順序為 `2026-01-05`、`2026-02-10`、空字串那筆排最後；`getFiltered({ sort: 'date-desc' })` 回傳順序為 `2026-02-10`、`2026-01-05`、空字串那筆仍排最後
+
+## 2. 共用搜尋排序元件
+
+- [x] 2.1 依設計決策「新增共用元件 SearchSortControls.vue，透過 v-model:search 與 v-model:sort 雙向綁定」，新增 `src/components/orders/SearchSortControls.vue`，使用既有的 `Input` 元件（`placeholder="搜尋名稱或備註"`）作為搜尋框、既有的 `Select` 元件作為排序下拉選單（選項依序為「預設排序」`value=''`、「日期：新到舊」`value='date-desc'`、「日期：舊到新」`value='date-asc'`、「金額：高到低」`value='amount-desc'`、「金額：低到高」`value='amount-asc'`），對外提供 `search`/`sort` props 與 `update:search`/`update:sort` emits；驗證：新增 `src/components/orders/__tests__/SearchSortControls.spec.js`，mount 元件並在搜尋輸入框輸入文字後斷言 `emitted('update:search')` 收到輸入值；選擇排序下拉選單的「金額：高到低」選項後斷言 `emitted('update:sort')` 收到 `'amount-desc'`；斷言排序下拉選單依序渲染 5 個選項且文字內容符合上述順序
+
+## 3. 頁面整合
+
+- [x] 3.1 依需求「All Orders page and category Order List pages share identical search and sort behavior」、需求「Order list pages support keyword search by name or notes」與需求「Search, sort, category, and status filters combine as an intersection」，依設計決策「AllOrders.vue、OrderList.vue 把 SearchSortControls 放在 StatusFilterTabs 上方，三種條件一起傳入 getFiltered」，修改 `src/views/AllOrders.vue`：新增 `searchQuery`（`ref('')`）與 `sortOption`（`ref('')`）狀態，在 `StatusFilterTabs` 上方加入 `SearchSortControls`（`v-model:search="searchQuery"` `v-model:sort="sortOption"`），`filteredOrders` computed 改為呼叫 `store.getFiltered({ status: selectedStatus.value || undefined, search: searchQuery.value || undefined, sort: sortOption.value || undefined })`；驗證：手動於瀏覽器輸入搜尋關鍵字後清單即時篩選，選擇排序選項後清單重新排序，同時設定狀態篩選與搜尋關鍵字時顯示交集結果
+- [x] 3.2 依需求「Search, sort, category, and status filters combine as an intersection」，修改 `src/views/OrderList.vue`：新增 `searchQuery`（`ref('')`）與 `sortOption`（`ref('')`）狀態，在 `StatusFilterTabs` 上方加入 `SearchSortControls`，`filteredOrders` computed 改為呼叫 `store.getFiltered({ category: category.value, status: selectedStatus.value || undefined, search: searchQuery.value || undefined, sort: sortOption.value || undefined })`；驗證：`src/views/__tests__/OrderList.spec.js` 新增測試，建立同分類下金額不同的多筆訂單，輸入搜尋關鍵字後清單只顯示符合關鍵字的訂單，選擇排序選項後清單依金額排序
+- [x] 3.3 依需求「Search and sort reset when navigating between category pages」，於 `src/views/OrderList.vue` 新增 `watch(category, () => { searchQuery.value = ''; sortOption.value = '' })`，因為 `/orders/:category` 是單一路由紀錄、Vue Router 切換分類時會重用同一個元件實例（不重新執行 setup），若不主動重置，`searchQuery`/`sortOption` 這兩個 `ref` 會在切換分類後繼續保留前一個分類頁面的值；驗證：`OrderList.spec.js` 新增測試，在 `/orders/agent` 頁面輸入搜尋關鍵字並選擇一個排序選項後，透過 `router.push('/orders/parcel')` 切換到另一個分類，斷言搜尋輸入框的值變回空字串、排序下拉選單的值變回預設選項（空字串）
+
+## 4. 整體驗證
+
+- [x] 4.1 執行 `npm test` 確認所有新增與既有測試皆通過；驗證：測試指令輸出全數 pass
