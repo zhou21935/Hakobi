@@ -1,8 +1,8 @@
 <template>
-  <div class="p-8 space-y-6">
+  <div class="p-4 md:p-8 space-y-6">
     <div class="max-w-6xl">
-      <h1 class="text-4xl font-heading font-bold text-ink mb-2">總覽</h1>
-      <p class="text-lg text-ink-muted">目前共有 {{ stats.total }} 筆訂單</p>
+      <h1 class="text-2xl md:text-4xl font-heading font-bold text-ink mb-2">總覽</h1>
+      <p class="text-base md:text-lg text-ink-muted">目前共有 {{ stats.total }} 筆訂單</p>
     </div>
 
     <div class="max-w-6xl grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -123,3 +123,32 @@ describe('OrderFormModal existing name/amount validation is unaffected', () => {
     wrapper.unmount()
   })
 })
+
+describe('OrderFormModal narrow viewport layout', () => {
+  it('stays within the viewport height and scrolls instead of overflowing', () => {
+    const wrapper = mountForm()
+    const container = body()
+      .findAll('div')
+      .find((d) => (d.attributes('class') || '').includes('max-h-[85vh]'))
+    expect(container).toBeTruthy()
+    const scrollableBody = body()
+      .findAll('div')
+      .find((d) => (d.attributes('class') || '').includes('overflow-y-auto'))
+    expect(scrollableBody).toBeTruthy()
+    wrapper.unmount()
+  })
+
+  it('arranges form field groups in a single column below the md breakpoint', () => {
+    const wrapper = mountForm()
+    const gridContainers = body()
+      .findAll('div')
+      .filter((d) => (d.attributes('class') || '').includes('grid-cols-1'))
+    expect(gridContainers.length).toBeGreaterThan(0)
+    for (const grid of gridContainers) {
+      const cls = grid.attributes('class')
+      expect(cls).not.toContain('sm:grid-cols')
+      expect(cls).toMatch(/md:grid-cols-\d/)
+    }
+    wrapper.unmount()
+  })
+})
