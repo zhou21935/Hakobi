@@ -1,8 +1,8 @@
 <template>
   <Card>
-    <div class="flex items-start justify-between gap-4">
-      <div class="min-w-0">
-        <div class="mb-2 flex flex-wrap items-center gap-1.5">
+    <div data-testid="order-card-row" class="flex flex-col sm:flex-row items-start sm:justify-between gap-3 sm:gap-4">
+      <div class="min-w-0 w-full sm:w-auto">
+        <div data-testid="order-card-tags" class="mb-2 flex flex-wrap items-center gap-1.5">
           <StatusBadge :status="order.status" />
           <span
             v-if="order.isPreorder"
@@ -26,9 +26,9 @@
         </p>
       </div>
 
-      <div class="text-right shrink-0">
+      <div class="text-left sm:text-right shrink-0 w-full sm:w-auto">
         <p class="font-heading font-bold text-ink text-lg">{{ currencySymbol }}{{ order.amount }}</p>
-        <div class="flex gap-2 mt-2 justify-end">
+        <div class="flex gap-2 mt-2 justify-start sm:justify-end">
           <button
             type="button"
             aria-label="編輯"

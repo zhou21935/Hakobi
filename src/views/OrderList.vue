@@ -1,18 +1,18 @@
 <template>
-  <div class="p-8 space-y-6">
-    <div class="flex items-start justify-between gap-4 max-w-6xl">
+  <div class="p-4 md:p-8 space-y-6">
+    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 max-w-6xl">
       <div>
-        <h1 class="text-4xl font-heading font-bold text-ink mb-2">{{ categoryLabel }}</h1>
-        <p class="text-lg text-ink-muted">管理{{ categoryLabel }}分類的訂單</p>
+        <h1 class="text-2xl md:text-4xl font-heading font-bold text-ink mb-2">{{ categoryLabel }}</h1>
+        <p class="text-base md:text-lg text-ink-muted">管理{{ categoryLabel }}分類的訂單</p>
       </div>
-      <Button @click="openCreateForm">+ 新增訂單</Button>
+      <Button class="w-full md:w-auto" @click="openCreateForm">+ 新增訂單</Button>
     </div>
 
     <div class="max-w-6xl">
       <StatusFilterTabs v-model="selectedStatus" :counts="counts" />
     </div>
 
-    <div class="max-w-6xl space-y-4">
+    <div class="max-w-6xl space-y-3 md:space-y-4">
       <p v-if="filteredOrders.length === 0" class="text-ink-muted">尚無訂單,點擊右上角「新增訂單」開始記錄。</p>
       <OrderCard
         v-for="order in filteredOrders"

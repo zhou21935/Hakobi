@@ -51,3 +51,17 @@ describe('OrderCard product category tags', () => {
     expect(wrapper.text()).not.toContain('其他')
   })
 })
+
+describe('OrderCard narrow viewport layout', () => {
+  it('stacks the info and action columns on narrow viewports and rows them on wider viewports', () => {
+    const wrapper = mount(OrderCard, { props: { order: baseOrder } })
+    const row = wrapper.get('[data-testid="order-card-row"]')
+    expect(row.classes()).toContain('flex-col')
+    expect(row.classes()).toContain('sm:flex-row')
+  })
+
+  it('keeps the tag container wrapping so tags never overflow the card', () => {
+    const wrapper = mount(OrderCard, { props: { order: baseOrder } })
+    expect(wrapper.get('[data-testid="order-card-tags"]').classes()).toContain('flex-wrap')
+  })
+})

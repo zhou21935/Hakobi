@@ -1,8 +1,8 @@
 <template>
-  <div class="flex flex-wrap gap-2">
+  <div class="flex flex-nowrap md:flex-wrap gap-2 overflow-x-auto md:overflow-visible pb-1 -mb-1">
     <button
       type="button"
-      class="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
+      class="shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
       :class="isActive(null) ? activeClass : inactiveClass"
       @click="$emit('update:modelValue', null)"
     >
@@ -14,7 +14,7 @@
       v-for="key in statusKeys"
       :key="key"
       type="button"
-      class="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
+      class="shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
       :class="isActive(key) ? activeClass : inactiveClass"
       @click="$emit('update:modelValue', key)"
     >

@@ -1,26 +1,26 @@
 <template>
   <Modal :model-value="modelValue" :title="isEditMode ? '編輯訂單' : '新增訂單'" @update:model-value="$emit('update:modelValue', $event)">
     <div class="space-y-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input v-model="form.name" label="商品名稱" placeholder="請輸入商品名稱" :error="nameError" />
         <Input v-model="form.platform" label="購買平台" placeholder="例如 Amazon" />
       </div>
 
       <Input v-model="form.productUrl" label="商品連結" placeholder="https://" />
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Input v-model="form.amount" type="number" label="金額" placeholder="0" :error="amountError" />
         <Select v-model="form.currency" label="幣別" :options="currencyOptions" />
         <Checkbox v-model="form.isPaid" label="已付款" />
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Input v-model="form.orderDate" type="date" label="下單日期" />
         <Select v-model="form.status" label="貨物狀態" :options="statusOptions" />
         <Checkbox v-model="form.isPreorder" label="預購商品" />
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input v-model="form.estimatedShipDate" type="date" label="預計出貨日期" />
         <Input v-model="form.estimatedArrivalDate" type="date" label="預計到貨日期" />
       </div>

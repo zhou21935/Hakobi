@@ -1,6 +1,14 @@
 <template>
+  <div
+    v-if="open"
+    data-testid="sidebar-overlay"
+    class="fixed inset-0 bg-black/50 z-30 md:hidden"
+    @click="$emit('update:open', false)"
+  ></div>
+
   <aside
-    class="fixed left-0 top-0 h-screen w-64 bg-gradient-to-br from-sidebar-from to-sidebar-to text-ink shadow-lg border-r border-sidebar-border"
+    class="fixed left-0 top-0 h-screen w-64 bg-gradient-to-br from-sidebar-from to-sidebar-to text-ink shadow-lg border-r border-sidebar-border z-40 transition-transform duration-200 md:translate-x-0"
+    :class="open ? 'translate-x-0' : '-translate-x-full'"
   >
     <!-- Logo -->
     <div class="px-6 py-8 border-b border-sidebar-border flex items-center gap-3">
@@ -23,6 +31,7 @@
             to="/"
             class="flex items-center gap-3 px-4 py-2 rounded-full text-ink hover:bg-white/50 transition-colors"
             :class="isActive('/') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
+            @click="$emit('update:open', false)"
           >
             📊 總覽
           </router-link>
@@ -33,6 +42,7 @@
             to="/orders"
             class="flex items-center gap-3 px-4 py-2 rounded-full text-ink hover:bg-white/50 transition-colors"
             :class="isActive('/orders') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
+            @click="$emit('update:open', false)"
           >
             📋 全部訂單
           </router-link>
@@ -43,6 +53,7 @@
             to="/ui-showcase"
             class="flex items-center gap-3 px-4 py-2 rounded-full text-ink hover:bg-white/50 transition-colors"
             :class="isActive('/ui-showcase') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
+            @click="$emit('update:open', false)"
           >
             🎨 UI 元件展示
           </router-link>
@@ -57,6 +68,7 @@
                 :to="`/orders/${category}`"
                 class="flex items-center gap-3 px-4 py-2 rounded-full text-sm text-ink hover:bg-white/50 transition-colors"
                 :class="isActive(`/orders/${category}`) ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
+                @click="$emit('update:open', false)"
               >
                 <span
                   class="w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0"
@@ -82,6 +94,15 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import { CATEGORY_LABELS } from '@/stores/orders'
+
+defineProps({
+  open: {
+    type: Boolean,
+    default: false
+  }
+})
+
+defineEmits(['update:open'])
 
 const route = useRoute()
 
