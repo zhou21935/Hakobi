@@ -8,7 +8,7 @@ TBD - created by archiving change 'build-preorder-feature'. Update Purpose after
 
 ### Requirement: User can create a preorder order with required field validation
 
-The system SHALL allow a user to create a new order via a form, and SHALL require a non-empty product name and a positive amount before the order is created.
+The system SHALL allow a user to create a new order via a form, and SHALL require a non-empty product name and a positive amount before the order is created. The orders store's add operation SHALL enforce this same requirement directly, independent of the form, using the shared validation rules defined by the `order-validation` capability.
 
 #### Scenario: Valid submission creates an order
 
@@ -25,24 +25,29 @@ The system SHALL allow a user to create a new order via a form, and SHALL requir
 - **WHEN** a user submits the order form with an amount of zero or less
 - **THEN** the system SHALL display a validation error on the amount field and SHALL NOT create the order
 
+#### Scenario: Store rejects an empty product name independent of the form
+
+- **WHEN** the orders store's add operation is called directly with an empty product name, bypassing the form
+- **THEN** the system SHALL NOT create the order and SHALL return a value indicating the write did not occur
+
+#### Scenario: Store rejects a non-positive amount independent of the form
+
+- **WHEN** the orders store's add operation is called directly with an amount of zero or less, bypassing the form
+- **THEN** the system SHALL NOT create the order and SHALL return a value indicating the write did not occur
+
 
 <!-- @trace
-source: order-category-rework
-updated: 2026-07-12
+source: centralize-order-validation
+updated: 2026-07-15
 code:
+  - src/domain/orderValidation.js
   - src/stores/orders.js
-  - src/components/AppSidebar.vue
-  - vite.config.js
-  - package.json
-  - src/components/ui/MultiSelect.vue
-  - src/components/orders/OrderCard.vue
   - src/components/orders/OrderFormModal.vue
 tests:
-  - src/components/ui/__tests__/MultiSelect.spec.js
-  - src/components/orders/__tests__/OrderCard.spec.js
-  - src/components/orders/__tests__/OrderFormModal.spec.js
-  - src/components/__tests__/AppSidebar.spec.js
   - src/stores/__tests__/orders.spec.js
+  - src/components/orders/__tests__/OrderFormModal.spec.js
+  - src/domain/__tests__/orderValidation.spec.js
+  - src/views/__tests__/OrderList.spec.js
 -->
 
 ---
@@ -347,7 +352,7 @@ tests:
 ---
 ### Requirement: Orders can be tagged with one or more product categories
 
-The system SHALL require a user to select at least one product category — from the fixed set 周邊 (merch), 書籍 (book), 其他 (other) — via a multi-select control in the order create/edit form before the order can be submitted, SHALL store the selection as the order's `productCategories` array field, and SHALL display one tag per selected value on the order's card.
+The system SHALL require a user to select at least one product category — from the fixed set 周邊 (merch), 書籍 (book), 其他 (other) — via a multi-select control in the order create/edit form before the order can be submitted, SHALL store the selection as the order's `productCategories` array field, and SHALL display one tag per selected value on the order's card. The orders store's add and update operations SHALL enforce the at-least-one-category requirement directly, independent of the form, using the shared validation rules defined by the `order-validation` capability.
 
 #### Scenario: Submitting without any product category blocks submission
 
@@ -372,21 +377,21 @@ The system SHALL require a user to select at least one product category — from
 - **WHEN** a user selects "其他" before "周邊"
 - **THEN** the order's card SHALL display the "周邊" tag before the "其他" tag, following the fixed option order 周邊, 書籍, 其他
 
+#### Scenario: Store rejects an empty product category list independent of the form
+
+- **WHEN** the orders store's add operation is called directly with an empty `productCategories` array, bypassing the form
+- **THEN** the system SHALL NOT create the order and SHALL return a value indicating the write did not occur
+
 <!-- @trace
-source: order-category-rework
-updated: 2026-07-12
+source: centralize-order-validation
+updated: 2026-07-15
 code:
+  - src/domain/orderValidation.js
   - src/stores/orders.js
-  - src/components/AppSidebar.vue
-  - vite.config.js
-  - package.json
-  - src/components/ui/MultiSelect.vue
-  - src/components/orders/OrderCard.vue
   - src/components/orders/OrderFormModal.vue
 tests:
-  - src/components/ui/__tests__/MultiSelect.spec.js
-  - src/components/orders/__tests__/OrderCard.spec.js
-  - src/components/orders/__tests__/OrderFormModal.spec.js
-  - src/components/__tests__/AppSidebar.spec.js
   - src/stores/__tests__/orders.spec.js
+  - src/components/orders/__tests__/OrderFormModal.spec.js
+  - src/domain/__tests__/orderValidation.spec.js
+  - src/views/__tests__/OrderList.spec.js
 -->
