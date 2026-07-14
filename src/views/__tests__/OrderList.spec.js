@@ -36,9 +36,9 @@ describe('OrderList category route sync', () => {
   })
 
   it('updates the displayed order list and status counts when navigating from one category route to another', async () => {
-    store.addOrder({ name: 'agent order', category: 'agent', amount: 10 })
-    store.addOrder({ name: 'parcel order 1', category: 'parcel', amount: 20 })
-    store.addOrder({ name: 'parcel order 2', category: 'parcel', amount: 30 })
+    store.addOrder({ name: 'agent order', category: 'agent', amount: 10, productCategories: ['merch'] })
+    store.addOrder({ name: 'parcel order 1', category: 'parcel', amount: 20, productCategories: ['merch'] })
+    store.addOrder({ name: 'parcel order 2', category: 'parcel', amount: 30, productCategories: ['merch'] })
 
     const wrapper = mountOrderList()
     expect(wrapper.text()).toContain('agent order')

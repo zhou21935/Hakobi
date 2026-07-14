@@ -19,14 +19,14 @@ describe('CATEGORIES', () => {
 describe('addOrder isPreorder', () => {
   it('defaults isPreorder to false and does not include isConsolidated', () => {
     const store = useOrdersStore()
-    const order = store.addOrder({ name: 'test', amount: 10 })
+    const order = store.addOrder({ name: 'test', amount: 10, productCategories: ['merch'] })
     expect(order.isPreorder).toBe(false)
     expect(order).not.toHaveProperty('isConsolidated')
   })
 
   it('accepts an explicit isPreorder value', () => {
     const store = useOrdersStore()
-    const order = store.addOrder({ name: 'test', amount: 10, isPreorder: true })
+    const order = store.addOrder({ name: 'test', amount: 10, productCategories: ['merch'], isPreorder: true })
     expect(order.isPreorder).toBe(true)
   })
 })
@@ -42,15 +42,70 @@ describe('PRODUCT_CATEGORIES', () => {
 })
 
 describe('addOrder productCategories', () => {
-  it('defaults productCategories to an empty array', () => {
+  it('rejects an order created without productCategories, since an omitted list is no longer defaulted', () => {
     const store = useOrdersStore()
     const order = store.addOrder({ name: 'test', amount: 10 })
-    expect(order.productCategories).toEqual([])
+    expect(order).toBeNull()
   })
 
   it('accepts an explicit productCategories array', () => {
     const store = useOrdersStore()
     const order = store.addOrder({ name: 'test', amount: 10, productCategories: ['merch', 'book'] })
     expect(order.productCategories).toEqual(['merch', 'book'])
+  })
+})
+
+describe('addOrder validation', () => {
+  it('rejects an empty name and does not add the order', () => {
+    const store = useOrdersStore()
+    const result = store.addOrder({ name: '', amount: 10, productCategories: ['merch'] })
+    expect(result).toBeNull()
+    expect(store.orders).toHaveLength(0)
+  })
+
+  it('rejects a non-positive amount and does not add the order', () => {
+    const store = useOrdersStore()
+    const result = store.addOrder({ name: 'test', amount: 0, productCategories: ['merch'] })
+    expect(result).toBeNull()
+    expect(store.orders).toHaveLength(0)
+  })
+
+  it('rejects an empty productCategories array and does not add the order', () => {
+    const store = useOrdersStore()
+    const result = store.addOrder({ name: 'test', amount: 10, productCategories: [] })
+    expect(result).toBeNull()
+    expect(store.orders).toHaveLength(0)
+  })
+
+  it('normalizes name and amount before storing a valid order', () => {
+    const store = useOrdersStore()
+    const order = store.addOrder({ name: '  test  ', amount: '10', productCategories: ['merch'] })
+    expect(order.name).toBe('test')
+    expect(order.amount).toBe(10)
+  })
+})
+
+describe('updateOrder validation', () => {
+  it('rejects an update that would make the name empty and leaves the order unchanged', () => {
+    const store = useOrdersStore()
+    const order = store.addOrder({ name: 'test', amount: 10, productCategories: ['merch'] })
+
+    const result = store.updateOrder(order.id, { name: '' })
+
+    expect(result).toBeNull()
+    expect(store.orders.find((o) => o.id === order.id).name).toBe('test')
+  })
+
+  it('accepts a partial update that omits name/amount/productCategories when the merged result stays valid', () => {
+    const store = useOrdersStore()
+    const order = store.addOrder({ name: 'test', amount: 10, productCategories: ['merch'] })
+
+    const result = store.updateOrder(order.id, { isPaid: true })
+
+    expect(result).not.toBeNull()
+    expect(result.isPaid).toBe(true)
+    expect(result.name).toBe('test')
+    expect(result.amount).toBe(10)
+    expect(result.productCategories).toEqual(['merch'])
   })
 })

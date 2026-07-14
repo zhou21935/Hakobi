@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { normalizeOrderInput, validateOrder } from '@/domain/orderValidation'
 
 export const CATEGORIES = {
   AGENT: 'agent',
@@ -35,28 +36,34 @@ export const useOrdersStore = defineStore('orders', () => {
   const orders = ref([])
 
   const addOrder = (orderData) => {
+    const normalized = normalizeOrderInput(orderData)
+    const { isValid } = validateOrder(normalized)
+    if (!isValid) {
+      return null
+    }
+
     const newOrder = {
       id: Date.now(),
-      category: orderData.category || '',
-      name: orderData.name || '',
-      platform: orderData.platform || '',
-      productUrl: orderData.productUrl || '',
-      status: orderData.status || 'AWAITING_SHIPMENT',
-      amount: orderData.amount || 0,
-      currency: orderData.currency || 'TWD',
-      isPaid: orderData.isPaid || false,
-      balanceDue: orderData.balanceDue || 0,
-      orderDate: orderData.orderDate || null,
-      paymentDueDate: orderData.paymentDueDate || null,
-      estimatedShipDate: orderData.estimatedShipDate || null,
-      estimatedArrivalDate: orderData.estimatedArrivalDate || null,
-      isPreorder: orderData.isPreorder || false,
-      productCategories: orderData.productCategories || [],
-      trackingNumber: orderData.trackingNumber || '',
-      shippingMethod: orderData.shippingMethod || '',
-      notes: orderData.notes || '',
+      category: normalized.category || '',
+      name: normalized.name || '',
+      platform: normalized.platform || '',
+      productUrl: normalized.productUrl || '',
+      status: normalized.status || 'AWAITING_SHIPMENT',
+      amount: normalized.amount || 0,
+      currency: normalized.currency || 'TWD',
+      isPaid: normalized.isPaid || false,
+      balanceDue: normalized.balanceDue || 0,
+      orderDate: normalized.orderDate || null,
+      paymentDueDate: normalized.paymentDueDate || null,
+      estimatedShipDate: normalized.estimatedShipDate || null,
+      estimatedArrivalDate: normalized.estimatedArrivalDate || null,
+      isPreorder: normalized.isPreorder || false,
+      productCategories: normalized.productCategories || [],
+      trackingNumber: normalized.trackingNumber || '',
+      shippingMethod: normalized.shippingMethod || '',
+      notes: normalized.notes || '',
       createdAt: new Date().toISOString(),
-      ...orderData
+      ...normalized
     }
     orders.value.push(newOrder)
     return newOrder
@@ -64,14 +71,19 @@ export const useOrdersStore = defineStore('orders', () => {
 
   const updateOrder = (id, orderData) => {
     const index = orders.value.findIndex(order => order.id === id)
-    if (index !== -1) {
-      orders.value[index] = {
-        ...orders.value[index],
-        ...orderData
-      }
-      return orders.value[index]
+    if (index === -1) {
+      return null
     }
-    return null
+
+    const merged = { ...orders.value[index], ...orderData }
+    const normalized = normalizeOrderInput(merged)
+    const { isValid } = validateOrder(normalized)
+    if (!isValid) {
+      return null
+    }
+
+    orders.value[index] = normalized
+    return orders.value[index]
   }
 
   const deleteOrder = (id) => {

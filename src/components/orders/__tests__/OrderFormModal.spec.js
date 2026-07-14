@@ -124,6 +124,24 @@ describe('OrderFormModal existing name/amount validation is unaffected', () => {
   })
 })
 
+describe('OrderFormModal submits normalized data', () => {
+  it('trims surrounding whitespace from the name in the submitted payload', async () => {
+    const wrapper = mountForm()
+    await body().find('input[placeholder="請輸入商品名稱"]').setValue('  測試商品  ')
+    await body().find('input[type="number"]').setValue(100)
+    await selectProductCategories(['周邊'])
+
+    await submitForm()
+
+    const submitted = wrapper.emitted('submit')
+    expect(submitted).toBeTruthy()
+    const payload = submitted[submitted.length - 1][0]
+    expect(payload.name).toBe('測試商品')
+
+    wrapper.unmount()
+  })
+})
+
 describe('OrderFormModal narrow viewport layout', () => {
   it('stays within the viewport height and scrolls instead of overflowing', () => {
     const wrapper = mountForm()
