@@ -46,14 +46,14 @@ import OrderCard from '@/components/orders/OrderCard.vue'
 import OrderFormModal from '@/components/orders/OrderFormModal.vue'
 
 const route = useRoute()
-const category = route.params.category
-const categoryLabel = computed(() => CATEGORY_LABELS[category] || category)
+const category = computed(() => route.params.category)
+const categoryLabel = computed(() => CATEGORY_LABELS[category.value] || category.value)
 
 const store = useOrdersStore()
 
 const selectedStatus = ref(null)
 
-const categoryOrders = computed(() => store.getByCategory(category))
+const categoryOrders = computed(() => store.getByCategory(category.value))
 
 const counts = computed(() => {
   const result = { all: categoryOrders.value.length }
@@ -64,7 +64,7 @@ const counts = computed(() => {
 })
 
 const filteredOrders = computed(() => {
-  return store.getFiltered({ category, status: selectedStatus.value || undefined })
+  return store.getFiltered({ category: category.value, status: selectedStatus.value || undefined })
 })
 
 const isFormOpen = ref(false)
@@ -84,7 +84,7 @@ const handleSubmit = (payload) => {
   if (editingOrder.value) {
     store.updateOrder(editingOrder.value.id, payload)
   } else {
-    store.addOrder({ ...payload, category })
+    store.addOrder({ ...payload, category: category.value })
   }
   isFormOpen.value = false
 }
