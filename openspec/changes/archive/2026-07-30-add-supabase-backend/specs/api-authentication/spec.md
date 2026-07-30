@@ -1,4 +1,4 @@
-﻿## ADDED Requirements
+## ADDED Requirements
 
 ### Requirement: Supabase access tokens establish caller identity
 The backend MUST authenticate protected requests by cryptographically verifying a Supabase Auth access JWT against the project JWKS and MUST validate its signature, issuer, audience, expiration, authenticated role, and UUID subject before establishing caller identity.

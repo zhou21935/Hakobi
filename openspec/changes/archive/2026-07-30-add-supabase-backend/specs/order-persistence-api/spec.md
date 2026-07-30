@@ -1,4 +1,4 @@
-﻿## ADDED Requirements
+## ADDED Requirements
 
 ### Requirement: Orders are persisted with validated ownership and values
 The database SHALL persist orders with a UUID primary key, an owning `user_id` referencing `auth.users`, constrained category, status, currency, positive amount, non-empty allowed product categories, timestamps, and documented defaults. The API MUST assign ownership from the authenticated caller and MUST NOT accept caller-selected ownership.
