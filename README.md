@@ -20,6 +20,22 @@ npm run preview   # 預覽建置結果
 npm test          # 執行測試（Vitest）
 ```
 
+
+## 後端
+
+後端位於 `server/`，提供公開 `GET /health` 及受 Supabase access token 保護的 `/api/orders` CRUD API。
+
+```sh
+npm --prefix server install
+cp server/.env.example server/.env
+npm --prefix server run dev
+npm --prefix server test
+npm --prefix server run typecheck
+npm --prefix server run build
+```
+
+設定與 owner/cross-owner 驗證步驟見 [`docs/supabase-setup.md`](docs/supabase-setup.md)。
+
 ## 功能
 
 - 訂單管理：新增、編輯、刪除訂單，依分類（代購／集運包裹）與狀態（待出貨／集運中／運送中／已抵台／已完成）檢視
