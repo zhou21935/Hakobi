@@ -20,7 +20,7 @@ claude_slash_commands: true
 worktree: true
 
 # Custom git worktrees directory
-worktrees_dir: C:\Users\user\Desktop\Hakobi
+worktrees_dir: C:\Users\Administrator\OneDrive\Desktop\Hakobi-worktrees
 
 # Claude Code skill effort levels (low/medium/high/xhigh/max)
 # claude_effort:
