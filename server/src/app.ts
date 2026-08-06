@@ -12,7 +12,7 @@ export async function buildApp(config: Config, dependencies: { pool?: Pool; getK
   const app = Fastify({ logger: true })
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof AppError) return reply.code(error.statusCode).send({ error: { code: error.code, message: error.message, ...(error.details === undefined ? {} : { details: error.details }) } })
-    app.log.error(error)
+    app.log.error({ errType: error instanceof Error ? error.name : 'UnknownError' }, 'Unhandled request error')
     return reply.code(500).send({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } })
   })
   await app.register(cors, { origin: config.corsOrigin })

@@ -36,6 +36,8 @@ npm --prefix server run build
 
 設定與 owner/cross-owner 驗證步驟見 [`docs/supabase-setup.md`](docs/supabase-setup.md)。
 
+前端需由 `.env.example` 設定 Supabase Project URL、anonymous publishable key 與 API base URL。部署 migration 後，以 `npm run verify:deployment` 驗證 health、訂單 CRUD 與兩使用者資料隔離；遠端環境禁止執行 database reset。
+
 ## 功能
 
 - 訂單管理：新增、編輯、刪除訂單，依分類（代購／集運包裹）與狀態（待出貨／集運中／運送中／已抵台／已完成）檢視

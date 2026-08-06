@@ -86,6 +86,14 @@
 
     <!-- Footer -->
     <div class="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-sidebar-border">
+      <button
+        data-testid="logout-button"
+        type="button"
+        class="mb-3 w-full rounded-full px-4 py-2 text-sm font-semibold text-ink hover:bg-white/50"
+        @click="$emit('logout')"
+      >
+        登出
+      </button>
       <p class="text-xs text-ink-muted">© 2026 Hakobi 版權所有</p>
     </div>
   </aside>
@@ -102,7 +110,7 @@ defineProps({
   }
 })
 
-defineEmits(['update:open'])
+defineEmits(['update:open', 'logout'])
 
 const route = useRoute()
 

@@ -17,7 +17,12 @@
     </div>
 
     <div class="max-w-6xl space-y-3 md:space-y-4">
-      <p v-if="filteredOrders.length === 0" class="text-ink-muted">尚無訂單,點擊右上角「新增訂單」開始記錄。</p>
+      <div v-if="store.error" role="alert" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        {{ store.error }}
+        <Button v-if="store.initialized" data-testid="retry-orders" variant="secondary" size="sm" class="ml-2" @click="retryLoad">重試</Button>
+      </div>
+      <p v-if="store.isLoading && !store.initialized" class="text-ink-muted">載入訂單中…</p>
+      <p v-else-if="!store.error && filteredOrders.length === 0" class="text-ink-muted">尚無訂單,點擊右上角「新增訂單」開始記錄。</p>
       <OrderCard
         v-for="order in filteredOrders"
         :key="order.id"
@@ -27,20 +32,20 @@
       />
     </div>
 
-    <OrderFormModal v-model="isFormOpen" :order="editingOrder" @submit="handleSubmit" />
+    <OrderFormModal v-model="isFormOpen" :order="editingOrder" :pending="store.isMutating" @submit="handleSubmit" />
 
     <Modal v-model="isConfirmOpen" title="確認刪除">
       <p class="text-ink-muted">確定要刪除這筆訂單嗎?此操作無法復原。</p>
       <template #footer>
         <Button variant="secondary" size="sm" @click="isConfirmOpen = false">取消</Button>
-        <Button variant="danger" size="sm" @click="confirmDelete">刪除</Button>
+        <Button variant="danger" size="sm" :disabled="store.isMutating" @click="confirmDelete">{{ store.isMutating ? '刪除中…' : '刪除' }}</Button>
       </template>
     </Modal>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useOrdersStore, STATUSES, CATEGORY_LABELS } from '@/stores/orders'
 import Button from '@/components/ui/Button.vue'
@@ -55,6 +60,10 @@ const category = computed(() => route.params.category)
 const categoryLabel = computed(() => CATEGORY_LABELS[category.value] || category.value)
 
 const store = useOrdersStore()
+onMounted(() => {
+  if (!store.initialized && !store.isLoading) store.loadOrders().catch(() => {})
+})
+const retryLoad = () => store.retry().catch(() => {})
 
 const selectedStatus = ref(null)
 const searchQuery = ref('')
@@ -97,13 +106,12 @@ const openEditForm = (order) => {
   isFormOpen.value = true
 }
 
-const handleSubmit = (payload) => {
-  if (editingOrder.value) {
-    store.updateOrder(editingOrder.value.id, payload)
-  } else {
-    store.addOrder({ ...payload, category: category.value })
-  }
-  isFormOpen.value = false
+const handleSubmit = async (payload) => {
+  try {
+    if (editingOrder.value) await store.updateOrder(editingOrder.value.id, payload)
+    else await store.addOrder({ ...payload, category: category.value })
+    isFormOpen.value = false
+  } catch {}
 }
 
 const isConfirmOpen = ref(false)
@@ -114,9 +122,11 @@ const requestDelete = (id) => {
   isConfirmOpen.value = true
 }
 
-const confirmDelete = () => {
-  store.deleteOrder(pendingDeleteId.value)
-  isConfirmOpen.value = false
-  pendingDeleteId.value = null
+const confirmDelete = async () => {
+  try {
+    await store.deleteOrder(pendingDeleteId.value)
+    isConfirmOpen.value = false
+    pendingDeleteId.value = null
+  } catch {}
 }
 </script>

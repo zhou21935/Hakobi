@@ -1,181 +1,141 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
-import { useOrdersStore, CATEGORIES, CATEGORY_LABELS, PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS } from '@/stores/orders'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
+
+const api = vi.hoisted(() => ({
+  listOrders: vi.fn(), createOrder: vi.fn(), updateOrder: vi.fn(), deleteOrder: vi.fn()
+}))
+const clearSession = vi.hoisted(() => vi.fn())
+vi.mock('@/services/ordersApi', () => ({ ...api, OrdersApiError: class OrdersApiError extends Error {} }))
+vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ clearSession }) }))
+
+import {
+  useOrdersStore, CATEGORIES, CATEGORY_LABELS, PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS
+} from '@/stores/orders'
+
+const order = (overrides = {}) => ({
+  id: crypto.randomUUID(), category: 'agent', name: 'Book', amount: 10,
+  productCategories: ['book'], status: 'AWAITING_SHIPMENT', orderDate: null,
+  notes: '', ...overrides
+})
 
 beforeEach(() => {
   setActivePinia(createPinia())
+  vi.clearAllMocks()
 })
 
-describe('CATEGORIES', () => {
-  it('only contains agent and parcel', () => {
+describe('order constants', () => {
+  it('retains the supported categories and product category labels', () => {
     expect(CATEGORIES).toEqual({ AGENT: 'agent', PARCEL: 'parcel' })
-  })
-
-  it('CATEGORY_LABELS only has labels for agent and parcel', () => {
     expect(CATEGORY_LABELS).toEqual({ agent: '海外代購', parcel: '集運包裹' })
-  })
-})
-
-describe('addOrder isPreorder', () => {
-  it('defaults isPreorder to false and does not include isConsolidated', () => {
-    const store = useOrdersStore()
-    const order = store.addOrder({ name: 'test', amount: 10, productCategories: ['merch'] })
-    expect(order.isPreorder).toBe(false)
-    expect(order).not.toHaveProperty('isConsolidated')
-  })
-
-  it('accepts an explicit isPreorder value', () => {
-    const store = useOrdersStore()
-    const order = store.addOrder({ name: 'test', amount: 10, productCategories: ['merch'], isPreorder: true })
-    expect(order.isPreorder).toBe(true)
-  })
-})
-
-describe('PRODUCT_CATEGORIES', () => {
-  it('has exactly merch, book, and other', () => {
     expect(PRODUCT_CATEGORIES).toEqual({ MERCH: 'merch', BOOK: 'book', OTHER: 'other' })
-  })
-
-  it('PRODUCT_CATEGORY_LABELS has the corresponding Traditional Chinese labels', () => {
     expect(PRODUCT_CATEGORY_LABELS).toEqual({ merch: '周邊', book: '書籍', other: '其他' })
   })
 })
 
-describe('addOrder productCategories', () => {
-  it('rejects an order created without productCategories, since an omitted list is no longer defaulted', () => {
+describe('remote loading', () => {
+  it('replaces the collection after a successful initial load', async () => {
+    api.listOrders.mockResolvedValue([order({ name: 'A' }), order({ name: 'B' })])
     const store = useOrdersStore()
-    const order = store.addOrder({ name: 'test', amount: 10 })
-    expect(order).toBeNull()
+
+    await store.loadOrders()
+
+    expect(store.orders.map(({ name }) => name)).toEqual(['A', 'B'])
+    expect(store.isLoading).toBe(false)
+    expect(store.initialized).toBe(true)
+    expect(store.error).toBeNull()
   })
 
-  it('accepts an explicit productCategories array', () => {
+  it('preserves confirmed data on load failure and supports retry', async () => {
+    api.listOrders.mockResolvedValueOnce([order({ name: 'Confirmed' })]).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([order({ name: 'Retried' })])
     const store = useOrdersStore()
-    const order = store.addOrder({ name: 'test', amount: 10, productCategories: ['merch', 'book'] })
-    expect(order.productCategories).toEqual(['merch', 'book'])
-  })
-})
+    await store.loadOrders()
+    await expect(store.loadOrders()).rejects.toThrow('offline')
+    expect(store.orders[0].name).toBe('Confirmed')
+    expect(store.error).toBe('offline')
 
-describe('addOrder validation', () => {
-  it('rejects an empty name and does not add the order', () => {
-    const store = useOrdersStore()
-    const result = store.addOrder({ name: '', amount: 10, productCategories: ['merch'] })
-    expect(result).toBeNull()
-    expect(store.orders).toHaveLength(0)
+    await store.retry()
+    expect(store.orders[0].name).toBe('Retried')
   })
 
-  it('rejects a non-positive amount and does not add the order', () => {
+  it('clears user-scoped state when the API returns 401', async () => {
+    api.listOrders.mockResolvedValueOnce([order({ name: 'Private' })])
+    const unauthorized = Object.assign(new Error('請重新登入'), { code: 'AUTH_UNAUTHORIZED', status: 401 })
+    api.listOrders.mockRejectedValueOnce(unauthorized)
     const store = useOrdersStore()
-    const result = store.addOrder({ name: 'test', amount: 0, productCategories: ['merch'] })
-    expect(result).toBeNull()
-    expect(store.orders).toHaveLength(0)
-  })
+    await store.loadOrders()
 
-  it('rejects an empty productCategories array and does not add the order', () => {
-    const store = useOrdersStore()
-    const result = store.addOrder({ name: 'test', amount: 10, productCategories: [] })
-    expect(result).toBeNull()
-    expect(store.orders).toHaveLength(0)
-  })
+    await expect(store.loadOrders()).rejects.toBe(unauthorized)
 
-  it('normalizes name and amount before storing a valid order', () => {
-    const store = useOrdersStore()
-    const order = store.addOrder({ name: '  test  ', amount: '10', productCategories: ['merch'] })
-    expect(order.name).toBe('test')
-    expect(order.amount).toBe(10)
+    expect(store.orders).toEqual([])
+    expect(clearSession).toHaveBeenCalledOnce()
   })
 })
 
-describe('getFiltered sort', () => {
-  it('sorts by amount ascending', () => {
+describe('confirmed mutations', () => {
+  it('validates locally and adds exactly the server-created UUID order', async () => {
+    const created = order({ id: '2b4df07c-4738-4f2e-8f11-8e67687e1057', name: 'Created' })
+    api.createOrder.mockResolvedValue(created)
     const store = useOrdersStore()
-    store.addOrder({ name: 'c', amount: 30, productCategories: ['merch'] })
-    store.addOrder({ name: 'a', amount: 10, productCategories: ['merch'] })
-    store.addOrder({ name: 'b', amount: 20, productCategories: ['merch'] })
 
-    const result = store.getFiltered({ sort: 'amount-asc' })
-
-    expect(result.map((o) => o.amount)).toEqual([10, 20, 30])
+    await expect(store.addOrder({ name: '', amount: 10, productCategories: ['book'] })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+    expect(api.createOrder).not.toHaveBeenCalled()
+    await expect(store.addOrder({ name: ' Created ', amount: '10', productCategories: ['book'] })).resolves.toEqual(created)
+    expect(store.orders).toEqual([created])
   })
 
-  it('sorts by amount descending', () => {
+  it('keeps the confirmed order when update fails', async () => {
+    const confirmed = order({ id: 'order-a' })
+    api.listOrders.mockResolvedValue([confirmed])
+    api.updateOrder.mockRejectedValue(new Error('update failed'))
     const store = useOrdersStore()
-    store.addOrder({ name: 'c', amount: 30, productCategories: ['merch'] })
-    store.addOrder({ name: 'a', amount: 10, productCategories: ['merch'] })
-    store.addOrder({ name: 'b', amount: 20, productCategories: ['merch'] })
+    await store.loadOrders()
 
-    const result = store.getFiltered({ sort: 'amount-desc' })
-
-    expect(result.map((o) => o.amount)).toEqual([30, 20, 10])
+    await expect(store.updateOrder('order-a', { isPaid: true })).rejects.toThrow('update failed')
+    expect(store.orders[0]).toEqual(confirmed)
   })
 
-  it('returns the unsorted filtered order when sort is omitted or not a recognized value', () => {
+  it('removes only after delete succeeds and retains on failure', async () => {
+    const confirmed = order({ id: 'order-a' })
+    api.listOrders.mockResolvedValue([confirmed])
+    api.deleteOrder.mockRejectedValueOnce(new Error('delete failed')).mockResolvedValueOnce(undefined)
     const store = useOrdersStore()
-    store.addOrder({ name: 'c', amount: 30, productCategories: ['merch'] })
-    store.addOrder({ name: 'a', amount: 10, productCategories: ['merch'] })
-    store.addOrder({ name: 'b', amount: 20, productCategories: ['merch'] })
+    await store.loadOrders()
 
-    const withoutSort = store.getFiltered({})
-    const withInvalidSort = store.getFiltered({ sort: 'not-a-real-option' })
-
-    expect(withoutSort.map((o) => o.name)).toEqual(['c', 'a', 'b'])
-    expect(withInvalidSort.map((o) => o.name)).toEqual(['c', 'a', 'b'])
+    await expect(store.deleteOrder('order-a')).rejects.toThrow('delete failed')
+    expect(store.orders).toHaveLength(1)
+    await store.deleteOrder('order-a')
+    expect(store.orders).toHaveLength(0)
   })
 
-  it('does not mutate the underlying orders array order', () => {
+  it('does not issue a duplicate mutation while one is active', async () => {
+    let resolveCreate
+    api.createOrder.mockImplementation(() => new Promise((resolve) => { resolveCreate = resolve }))
     const store = useOrdersStore()
-    store.addOrder({ name: 'c', amount: 30, productCategories: ['merch'] })
-    store.addOrder({ name: 'a', amount: 10, productCategories: ['merch'] })
-    store.addOrder({ name: 'b', amount: 20, productCategories: ['merch'] })
+    const pending = store.addOrder({ name: 'Book', amount: 10, productCategories: ['book'] })
 
-    store.getFiltered({ sort: 'amount-asc' })
-
-    expect(store.orders.map((o) => o.name)).toEqual(['c', 'a', 'b'])
-  })
-
-  it('sorts by orderDate ascending, with orders missing an orderDate placed last', () => {
-    const store = useOrdersStore()
-    store.addOrder({ name: 'no-date', amount: 10, productCategories: ['merch'], orderDate: '' })
-    store.addOrder({ name: 'later', amount: 10, productCategories: ['merch'], orderDate: '2026-02-10' })
-    store.addOrder({ name: 'earlier', amount: 10, productCategories: ['merch'], orderDate: '2026-01-05' })
-
-    const result = store.getFiltered({ sort: 'date-asc' })
-
-    expect(result.map((o) => o.name)).toEqual(['earlier', 'later', 'no-date'])
-  })
-
-  it('sorts by orderDate descending, with orders missing an orderDate still placed last', () => {
-    const store = useOrdersStore()
-    store.addOrder({ name: 'no-date', amount: 10, productCategories: ['merch'], orderDate: '' })
-    store.addOrder({ name: 'later', amount: 10, productCategories: ['merch'], orderDate: '2026-02-10' })
-    store.addOrder({ name: 'earlier', amount: 10, productCategories: ['merch'], orderDate: '2026-01-05' })
-
-    const result = store.getFiltered({ sort: 'date-desc' })
-
-    expect(result.map((o) => o.name)).toEqual(['later', 'earlier', 'no-date'])
+    await expect(store.addOrder({ name: 'Other', amount: 20, productCategories: ['book'] })).rejects.toMatchObject({ code: 'MUTATION_IN_PROGRESS' })
+    expect(api.createOrder).toHaveBeenCalledOnce()
+    resolveCreate(order())
+    await pending
   })
 })
 
-describe('updateOrder validation', () => {
-  it('rejects an update that would make the name empty and leaves the order unchanged', () => {
+describe('client-side projections', () => {
+  it('filters, searches, sorts, counts, and calculates statistics without API calls', async () => {
+    api.listOrders.mockResolvedValue([
+      order({ name: 'High widget', notes: 'alpha', amount: 30, orderDate: '2026-02-10' }),
+      order({ name: 'Low widget', amount: 10, orderDate: '2026-01-05' }),
+      order({ name: 'Parcel', category: 'parcel', amount: 20 })
+    ])
     const store = useOrdersStore()
-    const order = store.addOrder({ name: 'test', amount: 10, productCategories: ['merch'] })
+    await store.loadOrders()
+    api.listOrders.mockClear()
 
-    const result = store.updateOrder(order.id, { name: '' })
-
-    expect(result).toBeNull()
-    expect(store.orders.find((o) => o.id === order.id).name).toBe('test')
-  })
-
-  it('accepts a partial update that omits name/amount/productCategories when the merged result stays valid', () => {
-    const store = useOrdersStore()
-    const order = store.addOrder({ name: 'test', amount: 10, productCategories: ['merch'] })
-
-    const result = store.updateOrder(order.id, { isPaid: true })
-
-    expect(result).not.toBeNull()
-    expect(result.isPaid).toBe(true)
-    expect(result.name).toBe('test')
-    expect(result.amount).toBe(10)
-    expect(result.productCategories).toEqual(['merch'])
+    expect(store.getFiltered({ category: 'agent', search: 'widget', sort: 'amount-asc' }).map(({ name }) => name)).toEqual(['Low widget', 'High widget'])
+    expect(store.getByCategory('parcel')).toHaveLength(1)
+    expect(store.stats.total).toBe(3)
+    expect(store.stats.byCategory).toEqual({ agent: 2, parcel: 1 })
+    expect(store.stats.totalAmount).toBe(60)
+    expect(api.listOrders).not.toHaveBeenCalled()
   })
 })

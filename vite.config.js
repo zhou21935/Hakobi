@@ -14,7 +14,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['src/**/*.spec.js'],
+    include: ['src/**/*.spec.js', 'scripts/**/*.spec.js'],
     environment: 'jsdom',
     globals: true,
     pool: 'threads',

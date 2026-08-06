@@ -29,6 +29,12 @@ describe('AppSidebar category navigation', () => {
 })
 
 describe('AppSidebar responsive drawer behavior', () => {
+  it('emits logout when the logout control is activated', async () => {
+    const wrapper = mount(AppSidebar, { global: { plugins: [router] } })
+    await wrapper.get('[data-testid="logout-button"]').trigger('click')
+    expect(wrapper.emitted('logout')).toHaveLength(1)
+  })
+
   it('is collapsed off-canvas on narrow viewports when open is not set', () => {
     const wrapper = mount(AppSidebar, { global: { plugins: [router] } })
     expect(wrapper.get('aside').classes()).toContain('-translate-x-full')

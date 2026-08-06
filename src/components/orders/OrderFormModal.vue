@@ -37,8 +37,8 @@
     </div>
 
     <template #footer>
-      <Button variant="secondary" size="sm" @click="$emit('update:modelValue', false)">取消</Button>
-      <Button size="sm" @click="handleSubmit">送出</Button>
+      <Button variant="secondary" size="sm" :disabled="pending" @click="$emit('update:modelValue', false)">取消</Button>
+      <Button size="sm" :disabled="pending" @click="handleSubmit">{{ pending ? '儲存中…' : '送出' }}</Button>
     </template>
   </Modal>
 </template>
@@ -62,7 +62,8 @@ const props = defineProps({
   order: {
     type: Object,
     default: null
-  }
+  },
+  pending: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'submit'])

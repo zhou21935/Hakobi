@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { normalizeOrderInput, validateOrder } from '@/domain/orderValidation'
+import * as ordersApi from '@/services/ordersApi'
+import { useAuthStore } from '@/stores/auth'
 
 export const CATEGORIES = {
   AGENT: 'agent',
@@ -43,65 +45,84 @@ const compareOrderDate = (a, b, direction) => {
 
 export const useOrdersStore = defineStore('orders', () => {
   const orders = ref([])
+  const isLoading = ref(false)
+  const isMutating = ref(false)
+  const initialized = ref(false)
+  const error = ref(null)
 
-  const addOrder = (orderData) => {
-    const normalized = normalizeOrderInput(orderData)
-    const { isValid } = validateOrder(normalized)
-    if (!isValid) {
-      return null
+  const storeError = (caught) => {
+    if (caught?.status === 401 || caught?.code === 'AUTH_UNAUTHORIZED') {
+      clearOrders()
+      useAuthStore().clearSession()
     }
-
-    const newOrder = {
-      id: Date.now(),
-      category: normalized.category || '',
-      name: normalized.name || '',
-      platform: normalized.platform || '',
-      productUrl: normalized.productUrl || '',
-      status: normalized.status || 'AWAITING_SHIPMENT',
-      amount: normalized.amount || 0,
-      currency: normalized.currency || 'TWD',
-      isPaid: normalized.isPaid || false,
-      balanceDue: normalized.balanceDue || 0,
-      orderDate: normalized.orderDate || null,
-      paymentDueDate: normalized.paymentDueDate || null,
-      estimatedShipDate: normalized.estimatedShipDate || null,
-      estimatedArrivalDate: normalized.estimatedArrivalDate || null,
-      isPreorder: normalized.isPreorder || false,
-      productCategories: normalized.productCategories || [],
-      trackingNumber: normalized.trackingNumber || '',
-      shippingMethod: normalized.shippingMethod || '',
-      notes: normalized.notes || '',
-      createdAt: new Date().toISOString(),
-      ...normalized
-    }
-    orders.value.push(newOrder)
-    return newOrder
+    error.value = caught?.message || '訂單操作失敗'
+    return caught
   }
 
-  const updateOrder = (id, orderData) => {
-    const index = orders.value.findIndex(order => order.id === id)
-    if (index === -1) {
-      return null
+  const localError = (code, message) => Object.assign(new Error(message), { code, status: null })
+
+  const loadOrders = async () => {
+    if (isLoading.value) return
+    isLoading.value = true
+    error.value = null
+    try {
+      orders.value = await ordersApi.listOrders()
+    } catch (caught) {
+      throw storeError(caught)
+    } finally {
+      isLoading.value = false
+      initialized.value = true
     }
+  }
+
+  const retry = () => loadOrders()
+
+  const mutate = async (operation) => {
+    if (isMutating.value) throw localError('MUTATION_IN_PROGRESS', '已有訂單操作進行中')
+    isMutating.value = true
+    error.value = null
+    try { return await operation() } catch (caught) { throw storeError(caught) } finally { isMutating.value = false }
+  }
+
+  const addOrder = async (orderData) => {
+    const normalized = normalizeOrderInput(orderData)
+    const { isValid } = validateOrder(normalized)
+    if (!isValid) throw localError('VALIDATION_ERROR', '訂單資料驗證失敗')
+    return mutate(async () => {
+      const created = await ordersApi.createOrder(normalized)
+      orders.value.push(created)
+      return created
+    })
+  }
+
+  const updateOrder = async (id, orderData) => {
+    const index = orders.value.findIndex(order => order.id === id)
+    if (index === -1) throw localError('ORDER_NOT_FOUND', '找不到訂單')
 
     const merged = { ...orders.value[index], ...orderData }
     const normalized = normalizeOrderInput(merged)
     const { isValid } = validateOrder(normalized)
-    if (!isValid) {
-      return null
-    }
-
-    orders.value[index] = normalized
-    return orders.value[index]
+    if (!isValid) throw localError('VALIDATION_ERROR', '訂單資料驗證失敗')
+    return mutate(async () => {
+      const updated = await ordersApi.updateOrder(id, orderData)
+      orders.value[index] = updated
+      return updated
+    })
   }
 
-  const deleteOrder = (id) => {
+  const deleteOrder = async (id) => {
     const index = orders.value.findIndex(order => order.id === id)
-    if (index !== -1) {
+    if (index === -1) throw localError('ORDER_NOT_FOUND', '找不到訂單')
+    return mutate(async () => {
+      await ordersApi.deleteOrder(id)
       orders.value.splice(index, 1)
-      return true
-    }
-    return false
+    })
+  }
+
+  const clearOrders = () => {
+    orders.value = []
+    error.value = null
+    initialized.value = false
   }
 
   const getByCategory = computed(() => {
@@ -163,6 +184,13 @@ export const useOrdersStore = defineStore('orders', () => {
 
   return {
     orders,
+    isLoading,
+    isMutating,
+    initialized,
+    error,
+    loadOrders,
+    retry,
+    clearOrders,
     addOrder,
     updateOrder,
     deleteOrder,
@@ -170,6 +198,4 @@ export const useOrdersStore = defineStore('orders', () => {
     getFiltered,
     stats
   }
-}, {
-  persist: true
 })

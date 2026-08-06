@@ -1,9 +1,17 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, DOMWrapper } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { setActivePinia, createPinia } from 'pinia'
 import OrderList from '@/views/OrderList.vue'
 import { useOrdersStore } from '@/stores/orders'
+
+const api = vi.hoisted(() => ({ listOrders: vi.fn(), createOrder: vi.fn(), updateOrder: vi.fn(), deleteOrder: vi.fn() }))
+vi.mock('@/services/ordersApi', () => ({ ...api }))
+
+let nextId = 1
+const seed = (data) => store.orders.push({
+  id: `order-${nextId++}`, status: 'AWAITING_SHIPMENT', orderDate: null, notes: '', ...data
+})
 
 const body = () => new DOMWrapper(document.body)
 
@@ -15,6 +23,11 @@ let store
 beforeEach(async () => {
   setActivePinia(createPinia())
   store = useOrdersStore()
+  store.initialized = true
+  api.listOrders.mockReset().mockResolvedValue([])
+  api.createOrder.mockReset().mockImplementation(async (input) => ({ id: `order-${nextId++}`, ...input }))
+  api.updateOrder.mockReset()
+  api.deleteOrder.mockReset()
   router = createRouter({ history: createMemoryHistory(), routes })
   router.push('/orders/agent')
   await router.isReady()
@@ -36,9 +49,9 @@ describe('OrderList category route sync', () => {
   })
 
   it('updates the displayed order list and status counts when navigating from one category route to another', async () => {
-    store.addOrder({ name: 'agent order', category: 'agent', amount: 10, productCategories: ['merch'] })
-    store.addOrder({ name: 'parcel order 1', category: 'parcel', amount: 20, productCategories: ['merch'] })
-    store.addOrder({ name: 'parcel order 2', category: 'parcel', amount: 30, productCategories: ['merch'] })
+    seed({ name: 'agent order', category: 'agent', amount: 10, productCategories: ['merch'] })
+    seed({ name: 'parcel order 1', category: 'parcel', amount: 20, productCategories: ['merch'] })
+    seed({ name: 'parcel order 2', category: 'parcel', amount: 30, productCategories: ['merch'] })
 
     const wrapper = mountOrderList()
     expect(wrapper.text()).toContain('agent order')
@@ -92,8 +105,8 @@ describe('OrderList category route sync', () => {
 
 describe('OrderList search and sort', () => {
   it('filters the list by search keyword', async () => {
-    store.addOrder({ name: 'Widget Alpha', category: 'agent', amount: 10, productCategories: ['merch'] })
-    store.addOrder({ name: 'Gadget Beta', category: 'agent', amount: 20, productCategories: ['merch'] })
+    seed({ name: 'Widget Alpha', category: 'agent', amount: 10, productCategories: ['merch'] })
+    seed({ name: 'Gadget Beta', category: 'agent', amount: 20, productCategories: ['merch'] })
 
     const wrapper = mountOrderList()
     await wrapper.get('input[placeholder="搜尋名稱或備註"]').setValue('Widget')
@@ -106,8 +119,8 @@ describe('OrderList search and sort', () => {
   })
 
   it('sorts the list by amount when a sort option is selected', async () => {
-    store.addOrder({ name: 'high', category: 'agent', amount: 30, productCategories: ['merch'] })
-    store.addOrder({ name: 'low', category: 'agent', amount: 10, productCategories: ['merch'] })
+    seed({ name: 'high', category: 'agent', amount: 30, productCategories: ['merch'] })
+    seed({ name: 'low', category: 'agent', amount: 10, productCategories: ['merch'] })
 
     const wrapper = mountOrderList()
     await wrapper.get('select').setValue('amount-asc')
@@ -131,6 +144,26 @@ describe('OrderList search and sort', () => {
     expect(wrapper.get('input[placeholder="搜尋名稱或備註"]').element.value).toBe('')
     expect(wrapper.get('select').element.value).toBe('')
 
+    wrapper.unmount()
+  })
+})
+
+describe('OrderList asynchronous states', () => {
+  it('shows loading instead of the empty message while initial loading is active', () => {
+    store.initialized = false
+    store.isLoading = true
+    const wrapper = mountOrderList()
+    expect(wrapper.text()).toContain('載入訂單中')
+    expect(wrapper.text()).not.toContain('尚無訂單')
+    wrapper.unmount()
+  })
+
+  it('shows a load error and a retry control', async () => {
+    store.error = '無法載入訂單'
+    const wrapper = mountOrderList()
+    expect(wrapper.get('[role="alert"]').text()).toContain('無法載入訂單')
+    await wrapper.get('[data-testid="retry-orders"]').trigger('click')
+    expect(api.listOrders).toHaveBeenCalledOnce()
     wrapper.unmount()
   })
 })
