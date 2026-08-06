@@ -83,6 +83,12 @@ describe('confirmed mutations', () => {
     expect(store.orders).toEqual([created])
   })
 
+  it('rejects an unsafe product URL without issuing an API mutation', async () => {
+    const store = useOrdersStore()
+    await expect(store.addOrder({ name: 'Book', amount: 10, productCategories: ['book'], productUrl: 'javascript:alert(1)' })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+    expect(api.createOrder).not.toHaveBeenCalled()
+  })
+
   it('keeps the confirmed order when update fails', async () => {
     const confirmed = order({ id: 'order-a' })
     api.listOrders.mockResolvedValue([confirmed])

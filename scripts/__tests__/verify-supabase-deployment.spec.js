@@ -17,6 +17,7 @@ const response = (status, body) => ({
 
 const createFetch = ({ unsafeRead = false } = {}) => {
   let cleaned = false
+  let currentOrder
   const fetchImpl = vi.fn(async (url, options = {}) => {
     if (url.includes('/auth/v1/token')) {
       const body = JSON.parse(options.body)
@@ -25,15 +26,16 @@ const createFetch = ({ unsafeRead = false } = {}) => {
     if (url.endsWith('/health')) return response(200, { status: 'ok' })
     const auth = options.headers?.Authorization
     if (url.endsWith('/api/orders') && options.method === 'POST') {
-      return response(201, { data: { id: '2b4df07c-4738-4f2e-8f11-8e67687e1057', ...JSON.parse(options.body) } })
+      currentOrder = { id: '2b4df07c-4738-4f2e-8f11-8e67687e1057', ...JSON.parse(options.body) }
+      return response(201, { data: currentOrder })
     }
     if (auth === 'Bearer token-b') {
       if (unsafeRead && (!options.method || options.method === 'GET')) return response(200, { data: { id: 'private-order' } })
       return response(404, { error: { code: 'ORDER_NOT_FOUND', message: 'Not found' } })
     }
     if (options.method === 'DELETE') { cleaned = true; return { ok: true, status: 204, json: vi.fn() } }
-    if (options.method === 'PATCH') return response(200, { data: { id: '2b4df07c-4738-4f2e-8f11-8e67687e1057', isPaid: true } })
-    return response(200, { data: { id: '2b4df07c-4738-4f2e-8f11-8e67687e1057' } })
+    if (options.method === 'PATCH') { currentOrder = { ...currentOrder, ...JSON.parse(options.body) }; return response(200, { data: currentOrder }) }
+    return response(200, { data: currentOrder })
   })
   return { fetchImpl, wasCleaned: () => cleaned }
 }
@@ -44,6 +46,9 @@ describe('deployment verifier', () => {
     await expect(verifyDeployment({ env, fetchImpl })).resolves.toMatchObject({ isolation: true, cleaned: true })
     expect(wasCleaned()).toBe(true)
     expect(fetchImpl.mock.calls.filter(([, options]) => options?.headers?.Authorization === 'Bearer token-b')).toHaveLength(3)
+    const ownerWrites = fetchImpl.mock.calls.filter(([url, options]) => url.includes('/api/orders') && ['POST', 'PATCH'].includes(options?.method))
+    expect(JSON.parse(ownerWrites[0][1].body)).toMatchObject({ shippingMethod: '日本郵便 EMS', trackingNumber: 'EN123456789JP' })
+    expect(JSON.parse(ownerWrites[1][1].body)).toMatchObject({ shippingMethod: 'DHL', trackingNumber: 'UPDATED-TRACKING' })
   })
 
   it('fails unsafe isolation without leaking tokens and still cleans up', async () => {

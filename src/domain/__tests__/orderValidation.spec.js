@@ -25,7 +25,7 @@ describe('validateOrder', () => {
   it('is valid with all three errors null when name, amount, and productCategories are all valid', () => {
     const { isValid, errors } = validateOrder({ name: 'Widget', amount: 10, productCategories: ['merch'] })
     expect(isValid).toBe(true)
-    expect(errors).toEqual({ name: null, amount: null, productCategories: null })
+    expect(errors).toEqual({ name: null, amount: null, productCategories: null, productUrl: null })
   })
 
   it('sets errors.name when name is an empty string', () => {
@@ -56,5 +56,17 @@ describe('validateOrder', () => {
     expect(errors.productCategories).toBe('請至少選擇一項商品分類')
     expect(errors.name).toBeNull()
     expect(errors.amount).toBeNull()
+  })
+
+  it.each([
+    ['', true],
+    ['https://example.com/item/1', true],
+    ['http://example.com/item/1', true],
+    ['javascript:alert(1)', false],
+    ['example.com/item/1', false]
+  ])('validates product URL boundary %j', (productUrl, expectedValid) => {
+    const { isValid, errors } = validateOrder({ name: 'Widget', amount: 10, productCategories: ['merch'], productUrl })
+    expect(isValid).toBe(expectedValid)
+    expect(errors.productUrl).toBe(expectedValid ? null : '商品連結須為有效的 HTTP 或 HTTPS 網址')
   })
 })

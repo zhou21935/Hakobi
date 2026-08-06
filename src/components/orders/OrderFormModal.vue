@@ -6,7 +6,7 @@
         <Input v-model="form.platform" label="購買平台" placeholder="例如 Amazon" />
       </div>
 
-      <Input v-model="form.productUrl" label="商品連結" placeholder="https://" />
+      <Input v-model="form.productUrl" label="商品連結" placeholder="https://" :error="productUrlError" />
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Input v-model="form.amount" type="number" label="金額" placeholder="0" :error="amountError" />
@@ -23,6 +23,11 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input v-model="form.estimatedShipDate" type="date" label="預計出貨日期" />
         <Input v-model="form.estimatedArrivalDate" type="date" label="預計到貨日期" />
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input v-model="form.shippingMethod" label="物流方式" placeholder="例如 日本郵便 EMS" :maxlength="2000" />
+        <Input v-model="form.trackingNumber" label="追蹤號碼" placeholder="例如 EN123456789JP" :maxlength="2000" />
       </div>
 
       <MultiSelect
@@ -98,6 +103,8 @@ const emptyForm = () => ({
   orderDate: '',
   estimatedShipDate: '',
   estimatedArrivalDate: '',
+  shippingMethod: '',
+  trackingNumber: '',
   isPreorder: false,
   productCategories: [],
   notes: ''
@@ -107,11 +114,13 @@ const form = reactive(emptyForm())
 const nameError = ref('')
 const amountError = ref('')
 const productCategoriesError = ref('')
+const productUrlError = ref('')
 
 const resetForm = () => {
   nameError.value = ''
   amountError.value = ''
   productCategoriesError.value = ''
+  productUrlError.value = ''
   if (props.order) {
     Object.assign(form, emptyForm(), {
       name: props.order.name || '',
@@ -124,6 +133,8 @@ const resetForm = () => {
       orderDate: props.order.orderDate || '',
       estimatedShipDate: props.order.estimatedShipDate || '',
       estimatedArrivalDate: props.order.estimatedArrivalDate || '',
+      shippingMethod: props.order.shippingMethod || '',
+      trackingNumber: props.order.trackingNumber || '',
       isPreorder: props.order.isPreorder ?? false,
       productCategories: [...(props.order.productCategories || [])],
       notes: props.order.notes || ''
@@ -139,16 +150,19 @@ watch(
     if (open) {
       resetForm()
     }
-  }
+  },
+  { immediate: true }
 )
 
 const handleSubmit = () => {
+  if (props.pending) return
   const normalized = normalizeOrderInput(form)
   const { isValid, errors } = validateOrder(normalized)
 
   nameError.value = errors.name || ''
   amountError.value = errors.amount || ''
   productCategoriesError.value = errors.productCategories || ''
+  productUrlError.value = errors.productUrl || ''
 
   if (!isValid) {
     return
@@ -164,6 +178,8 @@ const handleSubmit = () => {
     orderDate: form.orderDate || null,
     estimatedShipDate: form.estimatedShipDate || null,
     estimatedArrivalDate: form.estimatedArrivalDate || null,
+    shippingMethod: form.shippingMethod,
+    trackingNumber: form.trackingNumber,
     isPreorder: form.isPreorder,
     notes: form.notes
   })

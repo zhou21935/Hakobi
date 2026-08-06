@@ -27,12 +27,14 @@
         v-for="order in filteredOrders"
         :key="order.id"
         :order="order"
+        @details="openDetails"
         @edit="openEditForm"
         @request-delete="requestDelete"
       />
     </div>
 
     <OrderFormModal v-model="isFormOpen" :order="editingOrder" :pending="store.isMutating" @submit="handleSubmit" />
+    <OrderDetailsModal v-if="selectedOrder" v-model="isDetailsOpen" :order="selectedOrder" @edit="openEditFromDetails" />
 
     <Modal v-model="isConfirmOpen" title="確認刪除">
       <p class="text-ink-muted">確定要刪除這筆訂單嗎?此操作無法復原。</p>
@@ -54,6 +56,7 @@ import StatusFilterTabs from '@/components/orders/StatusFilterTabs.vue'
 import SearchSortControls from '@/components/orders/SearchSortControls.vue'
 import OrderCard from '@/components/orders/OrderCard.vue'
 import OrderFormModal from '@/components/orders/OrderFormModal.vue'
+import OrderDetailsModal from '@/components/orders/OrderDetailsModal.vue'
 
 const route = useRoute()
 const category = computed(() => route.params.category)
@@ -95,6 +98,14 @@ const filteredOrders = computed(() => {
 
 const isFormOpen = ref(false)
 const editingOrder = ref(null)
+const isDetailsOpen = ref(false)
+const selectedOrderId = ref(null)
+const selectedOrder = computed(() => store.orders.find((order) => order.id === selectedOrderId.value) || null)
+
+const openDetails = (order) => {
+  selectedOrderId.value = order.id
+  isDetailsOpen.value = true
+}
 
 const openCreateForm = () => {
   editingOrder.value = null
@@ -128,5 +139,10 @@ const confirmDelete = async () => {
     isConfirmOpen.value = false
     pendingDeleteId.value = null
   } catch {}
+}
+
+const openEditFromDetails = (order) => {
+  isDetailsOpen.value = false
+  openEditForm(order)
 }
 </script>

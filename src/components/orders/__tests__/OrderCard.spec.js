@@ -65,3 +65,26 @@ describe('OrderCard narrow viewport layout', () => {
     expect(wrapper.get('[data-testid="order-card-tags"]').classes()).toContain('flex-wrap')
   })
 })
+
+describe('OrderCard actions', () => {
+  it('emits distinct details, edit, and delete events only from their controls', async () => {
+    const wrapper = mount(OrderCard, { props: { order: baseOrder } })
+    const details = wrapper.get('button[aria-label="查看詳情"]')
+    const edit = wrapper.get('button[aria-label="編輯"]')
+    const remove = wrapper.get('button[aria-label="刪除"]')
+    for (const button of [details, edit, remove]) {
+      expect(button.classes()).toContain('w-10')
+      expect(button.classes()).toContain('h-10')
+    }
+    await wrapper.get('[data-testid="order-card-row"]').trigger('click')
+    expect(wrapper.emitted('details')).toBeUndefined()
+    await details.trigger('click')
+    expect(wrapper.emitted('details')).toEqual([[baseOrder]])
+    expect(wrapper.emitted('edit')).toBeUndefined()
+    expect(wrapper.emitted('request-delete')).toBeUndefined()
+    await edit.trigger('click')
+    await remove.trigger('click')
+    expect(wrapper.emitted('edit')).toEqual([[baseOrder]])
+    expect(wrapper.emitted('request-delete')).toEqual([[baseOrder.id]])
+  })
+})

@@ -60,18 +60,30 @@ export const verifyDeployment = async ({ env = process.env, fetchImpl = fetch } 
   let orderId
   let cleaned = false
   try {
+    const initialLogistics = { shippingMethod: '日本郵便 EMS', trackingNumber: 'EN123456789JP' }
+    const updatedLogistics = { shippingMethod: 'DHL', trackingNumber: 'UPDATED-TRACKING' }
+    const assertLogistics = (payload, expected, label) => {
+      if (payload?.data?.shippingMethod !== expected.shippingMethod || payload?.data?.trackingNumber !== expected.trackingNumber) {
+        throw new Error(`${label} returned unexpected logistics fields`)
+      }
+    }
     const created = await api('/api/orders', {
       token: tokenA,
       method: 'POST',
       expected: 201,
-      body: { category: 'agent', name: `Hakobi deployment verification ${new Date().toISOString()}`, amount: 1, productCategories: ['other'] }
+      body: { category: 'agent', name: `Hakobi deployment verification ${new Date().toISOString()}`, amount: 1, productCategories: ['other'], ...initialLogistics }
     })
+    assertLogistics(created, initialLogistics, 'Create order')
     orderId = created?.data?.id
     if (!orderId) throw new Error('Create order returned no order ID')
 
     const path = `/api/orders/${encodeURIComponent(orderId)}`
-    await api(path, { token: tokenA, expected: 200 })
-    await api(path, { token: tokenA, method: 'PATCH', body: { isPaid: true }, expected: 200 })
+    const readCreated = await api(path, { token: tokenA, expected: 200 })
+    assertLogistics(readCreated, initialLogistics, 'Read created order')
+    const patched = await api(path, { token: tokenA, method: 'PATCH', body: { isPaid: true, ...updatedLogistics }, expected: 200 })
+    assertLogistics(patched, updatedLogistics, 'Patch order')
+    const readUpdated = await api(path, { token: tokenA, expected: 200 })
+    assertLogistics(readUpdated, updatedLogistics, 'Read updated order')
     await api(path, { token: tokenB, expected: 404 }).catch((error) => { throw new Error(`Cross-owner GET expected 404: ${error.message}`) })
     await api(path, { token: tokenB, method: 'PATCH', body: { isPaid: true }, expected: 404 }).catch((error) => { throw new Error(`Cross-owner PATCH expected 404: ${error.message}`) })
     await api(path, { token: tokenB, method: 'DELETE', expected: 404 }).catch((error) => { throw new Error(`Cross-owner DELETE expected 404: ${error.message}`) })

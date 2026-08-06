@@ -2,18 +2,17 @@ import { z } from 'zod'
 
 const text = z.string().trim().max(2000)
 const nullableDate = z.union([z.iso.date(), z.null()])
+const safeWebUrl = z.url().refine((value) => ['http:', 'https:'].includes(new URL(value).protocol), 'must use HTTP or HTTPS')
 const editable = {
   category: z.enum(['agent', 'parcel']),
   name: z.string().trim().min(1).max(200),
   platform: text,
-  productUrl: z.union([z.url(), z.literal('')]),
+  productUrl: z.union([safeWebUrl, z.literal('')]),
   status: z.enum(['AWAITING_SHIPMENT', 'CONSOLIDATING', 'IN_TRANSIT', 'ARRIVED', 'COMPLETED']),
   amount: z.number().positive().max(999999999999.99),
   currency: z.enum(['TWD', 'USD', 'KRW', 'JPY']),
   isPaid: z.boolean(),
-  balanceDue: z.number().min(0).max(999999999999.99),
   orderDate: nullableDate,
-  paymentDueDate: nullableDate,
   estimatedShipDate: nullableDate,
   estimatedArrivalDate: nullableDate,
   isPreorder: z.boolean(),
@@ -28,8 +27,8 @@ export const createOrderSchema = z.strictObject({
   status: editable.status.default('AWAITING_SHIPMENT'),
   currency: editable.currency.default('TWD'),
   platform: editable.platform.default(''), productUrl: editable.productUrl.default(''),
-  isPaid: editable.isPaid.default(false), balanceDue: editable.balanceDue.default(0),
-  orderDate: editable.orderDate.default(null), paymentDueDate: editable.paymentDueDate.default(null),
+  isPaid: editable.isPaid.default(false),
+  orderDate: editable.orderDate.default(null),
   estimatedShipDate: editable.estimatedShipDate.default(null), estimatedArrivalDate: editable.estimatedArrivalDate.default(null),
   isPreorder: editable.isPreorder.default(false), trackingNumber: editable.trackingNumber.default(''),
   shippingMethod: editable.shippingMethod.default(''), notes: editable.notes.default('')

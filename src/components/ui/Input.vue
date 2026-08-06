@@ -9,6 +9,7 @@
       :type="type"
       :placeholder="placeholder"
       :disabled="disabled"
+      :maxlength="maxlength"
       :value="modelValue"
       :class="inputClass"
       @input="$emit('update:modelValue', $event.target.value)"
@@ -45,6 +46,10 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  maxlength: {
+    type: Number,
+    default: undefined
   }
 })
 

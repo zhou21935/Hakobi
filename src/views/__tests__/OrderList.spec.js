@@ -167,3 +167,22 @@ describe('OrderList asynchronous states', () => {
     wrapper.unmount()
   })
 })
+
+describe('OrderList details integration', () => {
+  it('uses the selected ID for live details and transitions to edit without another list request', async () => {
+    seed({ id: 'selected-order', name: 'Tracked Book', category: 'agent', amount: 10, currency: 'TWD', isPaid: false, productCategories: ['book'], shippingMethod: 'DHL', trackingNumber: 'OLD', createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z' })
+    const wrapper = mountOrderList()
+    await wrapper.get('button[aria-label="查看詳情"]').trigger('click')
+    expect(api.listOrders).not.toHaveBeenCalled()
+    const index = store.orders.findIndex(({ id }) => id === 'selected-order')
+    store.orders[index] = { ...store.orders[index], shippingMethod: '日本郵便 EMS', trackingNumber: 'NEW' }
+    await wrapper.vm.$nextTick()
+    expect(body().text()).toContain('日本郵便 EMS')
+    expect(body().text()).not.toContain('OLD')
+    await body().find('button[aria-label="編輯訂單"]').trigger('click')
+    expect(body().text()).not.toContain('訂單詳情')
+    expect(body().text()).toContain('編輯訂單')
+    expect(body().find('input[placeholder="例如 日本郵便 EMS"]').element.value).toBe('日本郵便 EMS')
+    wrapper.unmount()
+  })
+})

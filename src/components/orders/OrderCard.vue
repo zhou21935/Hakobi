@@ -31,8 +31,16 @@
         <div class="flex gap-2 mt-2 justify-start sm:justify-end">
           <button
             type="button"
+            aria-label="查看詳情"
+            class="w-10 h-10 rounded-full bg-white border border-card-border flex items-center justify-center hover:bg-badge-category-bg transition"
+            @click="$emit('details', order)"
+          >
+            👁️
+          </button>
+          <button
+            type="button"
             aria-label="編輯"
-            class="w-8 h-8 rounded-full bg-badge-category-bg flex items-center justify-center hover:brightness-95 transition"
+            class="w-10 h-10 rounded-full bg-badge-category-bg flex items-center justify-center hover:brightness-95 transition"
             @click="$emit('edit', order)"
           >
             ✏️
@@ -40,7 +48,7 @@
           <button
             type="button"
             aria-label="刪除"
-            class="w-8 h-8 rounded-full bg-white border border-card-border flex items-center justify-center hover:bg-badge-category-bg transition"
+            class="w-10 h-10 rounded-full bg-white border border-card-border flex items-center justify-center hover:bg-badge-category-bg transition"
             @click="$emit('request-delete', order.id)"
           >
             🗑️
@@ -64,7 +72,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['edit', 'request-delete'])
+defineEmits(['details', 'edit', 'request-delete'])
 
 const CURRENCY_SYMBOLS = {
   TWD: 'NT$',

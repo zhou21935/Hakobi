@@ -11,7 +11,7 @@ const fillRequiredFields = async () => {
 
 const mountForm = (order = null) =>
   mount(OrderFormModal, {
-    props: { modelValue: true, order },
+    props: { modelValue: true, order, pending: false },
     attachTo: document.body
   })
 
@@ -58,6 +58,60 @@ describe('OrderFormModal preorder checkbox', () => {
     const wrapper = mountForm()
     const labels = body().findAll('label').map((l) => l.text())
     expect(labels.some((text) => text.includes('送往集運倉'))).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+describe('OrderFormModal logistics fields', () => {
+  it('submits optional shipping method and tracking number on create', async () => {
+    const wrapper = mountForm()
+    await fillRequiredFields()
+    await selectProductCategories(['書籍'])
+    await body().find('input[placeholder="例如 日本郵便 EMS"]').setValue('日本郵便 EMS')
+    await body().find('input[placeholder="例如 EN123456789JP"]').setValue('EN123456789JP')
+    await submitForm()
+    expect(wrapper.emitted('submit').at(-1)[0]).toMatchObject({ shippingMethod: '日本郵便 EMS', trackingNumber: 'EN123456789JP' })
+    wrapper.unmount()
+  })
+
+  it('prefills, clears, and submits existing logistics fields', async () => {
+    const wrapper = mountForm({ name: 'Book', amount: 100, productCategories: ['book'], shippingMethod: 'DHL', trackingNumber: 'OLD' })
+    const shipping = body().find('input[placeholder="例如 日本郵便 EMS"]')
+    const tracking = body().find('input[placeholder="例如 EN123456789JP"]')
+    expect(shipping.element.value).toBe('DHL')
+    expect(tracking.element.value).toBe('OLD')
+    await shipping.setValue('')
+    await tracking.setValue('')
+    await submitForm()
+    expect(wrapper.emitted('submit').at(-1)[0]).toMatchObject({ shippingMethod: '', trackingNumber: '' })
+    wrapper.unmount()
+  })
+
+  it('caps both free-text logistics fields at 2000 characters', () => {
+    const wrapper = mountForm()
+    expect(body().find('input[placeholder="例如 日本郵便 EMS"]').attributes('maxlength')).toBe('2000')
+    expect(body().find('input[placeholder="例如 EN123456789JP"]').attributes('maxlength')).toBe('2000')
+    wrapper.unmount()
+  })
+
+  it('blocks unsafe product URLs with a field error', async () => {
+    const wrapper = mountForm()
+    await fillRequiredFields()
+    await selectProductCategories(['書籍'])
+    await body().find('input[placeholder="https://"]').setValue('javascript:alert(1)')
+    await submitForm()
+    expect(wrapper.emitted('submit')).toBeUndefined()
+    expect(body().text()).toContain('商品連結須為有效的 HTTP 或 HTTPS 網址')
+    wrapper.unmount()
+  })
+
+  it('does not emit submit while pending', async () => {
+    const wrapper = mountForm()
+    await wrapper.setProps({ pending: true })
+    const submitButton = body().findAll('button').find((button) => button.text() === '儲存中…')
+    expect(submitButton.attributes()).toHaveProperty('disabled')
+    await submitButton.trigger('click')
+    expect(wrapper.emitted('submit')).toBeUndefined()
     wrapper.unmount()
   })
 })
