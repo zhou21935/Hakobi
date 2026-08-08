@@ -15,7 +15,10 @@ export async function buildApp(config: Config, dependencies: { pool?: Pool; getK
     app.log.error({ errType: error instanceof Error ? error.name : 'UnknownError' }, 'Unhandled request error')
     return reply.code(500).send({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } })
   })
-  await app.register(cors, { origin: config.corsOrigin })
+  await app.register(cors, {
+    origin: config.corsOrigin,
+    methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS']
+  })
   await app.register(databasePlugin, { connectionString: config.databaseUrl, pool: dependencies.pool })
   await app.register(authPlugin, { supabaseUrl: config.supabaseUrl, getKey: dependencies.getKey })
   app.get('/health', async () => ({ status: 'ok' }))
