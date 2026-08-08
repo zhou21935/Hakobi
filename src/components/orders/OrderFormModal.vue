@@ -116,6 +116,12 @@ const amountError = ref('')
 const productCategoriesError = ref('')
 const productUrlError = ref('')
 
+const toDateOnly = (value) => {
+  if (!value) return ''
+  const match = String(value).match(/^\d{4}-\d{2}-\d{2}/)
+  return match ? match[0] : ''
+}
+
 const resetForm = () => {
   nameError.value = ''
   amountError.value = ''
@@ -130,9 +136,9 @@ const resetForm = () => {
       currency: props.order.currency || 'TWD',
       isPaid: props.order.isPaid ?? false,
       status: props.order.status || 'AWAITING_SHIPMENT',
-      orderDate: props.order.orderDate || '',
-      estimatedShipDate: props.order.estimatedShipDate || '',
-      estimatedArrivalDate: props.order.estimatedArrivalDate || '',
+      orderDate: toDateOnly(props.order.orderDate),
+      estimatedShipDate: toDateOnly(props.order.estimatedShipDate),
+      estimatedArrivalDate: toDateOnly(props.order.estimatedArrivalDate),
       shippingMethod: props.order.shippingMethod || '',
       trackingNumber: props.order.trackingNumber || '',
       isPreorder: props.order.isPreorder ?? false,
@@ -175,9 +181,9 @@ const handleSubmit = () => {
     currency: form.currency,
     isPaid: form.isPaid,
     status: form.status,
-    orderDate: form.orderDate || null,
-    estimatedShipDate: form.estimatedShipDate || null,
-    estimatedArrivalDate: form.estimatedArrivalDate || null,
+    orderDate: toDateOnly(form.orderDate) || null,
+    estimatedShipDate: toDateOnly(form.estimatedShipDate) || null,
+    estimatedArrivalDate: toDateOnly(form.estimatedArrivalDate) || null,
     shippingMethod: form.shippingMethod,
     trackingNumber: form.trackingNumber,
     isPreorder: form.isPreorder,

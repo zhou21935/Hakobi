@@ -179,6 +179,32 @@ describe('OrderFormModal existing name/amount validation is unaffected', () => {
 })
 
 describe('OrderFormModal submits normalized data', () => {
+  it('converts API ISO timestamps to date-only values when editing', async () => {
+    const wrapper = mountForm({
+      name: 'Book',
+      amount: 100,
+      productCategories: ['book'],
+      orderDate: '2026-08-06T00:00:00.000Z',
+      estimatedShipDate: '2026-08-10T00:00:00.000Z',
+      estimatedArrivalDate: '2026-08-12T00:00:00.000Z'
+    })
+
+    expect(body().findAll('input[type="date"]').map((input) => input.element.value)).toEqual([
+      '2026-08-06',
+      '2026-08-10',
+      '2026-08-12'
+    ])
+
+    await submitForm()
+
+    expect(wrapper.emitted('submit').at(-1)[0]).toMatchObject({
+      orderDate: '2026-08-06',
+      estimatedShipDate: '2026-08-10',
+      estimatedArrivalDate: '2026-08-12'
+    })
+    wrapper.unmount()
+  })
+
   it('trims surrounding whitespace from the name in the submitted payload', async () => {
     const wrapper = mountForm()
     await body().find('input[placeholder="請輸入商品名稱"]').setValue('  測試商品  ')
