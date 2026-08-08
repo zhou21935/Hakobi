@@ -1,9 +1,9 @@
 <template>
   <Modal :model-value="modelValue" title="訂單詳情" @update:model-value="close">
-    <div data-testid="order-details-content" class="min-w-0 space-y-6 overflow-x-hidden">
-      <section>
-        <h3 class="mb-3 font-heading font-semibold text-ink">基本資料</h3>
-        <dl class="space-y-3 text-sm">
+    <div data-testid="order-details-content" class="min-w-0 space-y-4 sm:space-y-5">
+      <section data-testid="order-detail-card" class="rounded-card bg-accentcard-from/35 p-5 sm:p-6">
+        <h3 class="mb-4 font-heading font-semibold text-ink">基本資料</h3>
+        <dl class="grid min-w-0 grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
           <DetailValue label="商品名稱" :value="order.name" />
           <DetailValue label="購買平台" :value="order.platform" />
           <DetailValue label="商品分類" :value="productCategoryText" />
@@ -21,13 +21,13 @@
               <span v-else data-testid="empty-value">尚未填寫</span>
             </dd>
           </div>
-          <DetailValue label="備註" :value="order.notes" />
+          <DetailValue class="sm:col-span-2" label="備註" :value="order.notes" />
         </dl>
       </section>
 
-      <section>
-        <h3 class="mb-3 font-heading font-semibold text-ink">訂單資料</h3>
-        <dl class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+      <section data-testid="order-detail-card" class="rounded-card bg-accentcard-from/35 p-5 sm:p-6">
+        <h3 class="mb-4 font-heading font-semibold text-ink">訂單資料</h3>
+        <dl class="grid min-w-0 grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
           <DetailValue label="訂單類別" :value="categoryLabel" />
           <DetailValue label="金額" :value="formattedAmount" />
           <DetailValue label="付款狀態" :value="order.isPaid ? '已付款' : '未付款'" />
@@ -35,12 +35,12 @@
         </dl>
       </section>
 
-      <section>
-        <h3 class="mb-3 font-heading font-semibold text-ink">物流資料</h3>
-        <dl class="space-y-3 text-sm">
+      <section data-testid="order-detail-card" class="rounded-card bg-accentcard-from/35 p-5 sm:p-6">
+        <h3 class="mb-4 font-heading font-semibold text-ink">物流資料</h3>
+        <dl class="grid min-w-0 grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
           <DetailValue label="貨物狀態" :value="statusLabel" />
           <DetailValue label="物流方式" :value="order.shippingMethod" />
-          <div class="min-w-0">
+          <div class="min-w-0 sm:col-span-2">
             <dt class="text-ink-muted">追蹤號碼</dt>
             <dd class="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-ink">
               <span v-if="hasTrackingNumber" class="break-all select-all">{{ order.trackingNumber }}</span>
@@ -54,18 +54,18 @@
         </dl>
       </section>
 
-      <section>
-        <h3 class="mb-3 font-heading font-semibold text-ink">日期資料</h3>
-        <dl class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+      <section data-testid="order-detail-card" class="rounded-card bg-accentcard-from/35 p-5 sm:p-6">
+        <h3 class="mb-4 font-heading font-semibold text-ink">日期資料</h3>
+        <dl class="grid min-w-0 grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
           <DetailValue label="下單日期" :value="formatDate(order.orderDate)" />
           <DetailValue label="預計出貨日期" :value="formatDate(order.estimatedShipDate)" />
           <DetailValue label="預計到貨日期" :value="formatDate(order.estimatedArrivalDate)" />
         </dl>
       </section>
 
-      <section>
-        <h3 class="mb-3 font-heading font-semibold text-ink">系統資訊</h3>
-        <dl class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 text-xs">
+      <section data-testid="order-system-info" class="border-t border-card-border pt-5 text-ink-muted">
+        <h3 class="mb-4 font-heading text-sm font-semibold">系統資訊</h3>
+        <dl class="grid min-w-0 grid-cols-1 gap-x-6 gap-y-4 text-xs sm:grid-cols-2">
           <DetailValue label="建立時間" :value="formatTimestamp(order.createdAt)" />
           <DetailValue label="最後更新時間" :value="formatTimestamp(order.updatedAt)" />
         </dl>
@@ -125,8 +125,27 @@ const safeProductUrl = computed(() => {
   }
 })
 
-const formatDate = (value) => value ? value.replaceAll('-', '/') : ''
-const formatTimestamp = (value) => value ? new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Taipei' }).format(new Date(value)) : ''
+const formatDate = (value) => {
+  if (!value) return ''
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  return match ? `${match[1]}/${match[2]}/${match[3]}` : String(value)
+}
+const timestampFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Taipei',
+  hourCycle: 'h23',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit'
+})
+const formatTimestamp = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const parts = Object.fromEntries(timestampFormatter.formatToParts(date).map(({ type, value: part }) => [type, part]))
+  return `${parts.year}/${parts.month}/${parts.day} ${parts.hour}:${parts.minute}`
+}
 const close = () => emit('update:modelValue', false)
 const edit = () => { emit('update:modelValue', false); emit('edit', props.order) }
 const copyTrackingNumber = async () => {

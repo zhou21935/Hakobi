@@ -103,3 +103,57 @@ describe('OrderDetailsModal narrow layout', () => {
     wrapper.unmount()
   })
 })
+
+describe('OrderDetailsModal responsive information groups', () => {
+  it('renders four warm-purple cards with one-column mobile and two-column desktop grids', () => {
+    const wrapper = mountDetails()
+    const cards = body().findAll('[data-testid="order-detail-card"]')
+
+    expect(cards).toHaveLength(4)
+    for (const card of cards) {
+      expect(card.classes()).toContain('rounded-card')
+      expect(card.classes()).toContain('bg-accentcard-from/35')
+      const fields = card.find('dl')
+      expect(fields.classes()).toContain('grid-cols-1')
+      expect(fields.classes()).toContain('sm:grid-cols-2')
+    }
+    wrapper.unmount()
+  })
+
+  it('renders lower-emphasis system information outside the primary cards', () => {
+    const wrapper = mountDetails()
+    const systemInfo = body().find('[data-testid="order-system-info"]')
+
+    expect(systemInfo.classes()).toContain('border-t')
+    expect(systemInfo.classes()).toContain('text-ink-muted')
+    expect(systemInfo.attributes('data-testid')).not.toBe('order-detail-card')
+    wrapper.unmount()
+  })
+
+  it('keeps footer actions outside the independently scrolling content region', () => {
+    const wrapper = mountDetails()
+    const scrollArea = body().find('.modal-scroll-area')
+    const detailsContent = body().find('[data-testid="order-details-content"]')
+
+    expect(scrollArea.find('[aria-label="關閉訂單詳情"]').exists()).toBe(false)
+    expect(body().find('[aria-label="關閉訂單詳情"]').exists()).toBe(true)
+    expect(detailsContent.classes()).not.toContain('overflow-x-hidden')
+    wrapper.unmount()
+  })
+
+  it('shows business dates without time and system timestamps in Taipei 24-hour format', () => {
+    const wrapper = mountDetails(baseOrder({
+      orderDate: '2026-08-05T16:00:00.000Z',
+      estimatedShipDate: '2026-08-09T16:00:00.000Z',
+      estimatedArrivalDate: '2026-08-11T16:00:00.000Z',
+      createdAt: '2026-08-06T14:55:00.000Z',
+      updatedAt: '2026-08-06T14:55:00.000Z'
+    }))
+    const text = body().text()
+
+    for (const date of ['2026/08/05', '2026/08/09', '2026/08/11']) expect(text).toContain(date)
+    expect(text).not.toContain('16:00')
+    expect(text.match(/2026\/08\/06 22:55/g)).toHaveLength(2)
+    wrapper.unmount()
+  })
+})
