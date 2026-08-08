@@ -180,7 +180,7 @@ describe('OrderList details integration', () => {
     expect(body().text()).toContain('日本郵便 EMS')
     expect(body().text()).not.toContain('OLD')
     await body().find('button[aria-label="編輯訂單"]').trigger('click')
-    expect(body().text()).not.toContain('訂單詳情')
+    expect(body().find('[data-testid="order-details-content"]').exists()).toBe(false)
     expect(body().text()).toContain('編輯訂單')
     expect(body().find('input[placeholder="例如 日本郵便 EMS"]').element.value).toBe('日本郵便 EMS')
     wrapper.unmount()

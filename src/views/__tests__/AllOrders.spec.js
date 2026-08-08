@@ -38,7 +38,7 @@ describe('AllOrders details integration', () => {
     const wrapper = mount(AllOrders, { attachTo: document.body })
     await wrapper.get('button[aria-label="查看詳情"]').trigger('click')
     await body().find('button[aria-label="編輯訂單"]').trigger('click')
-    expect(body().text()).not.toContain('訂單詳情')
+    expect(body().find('[data-testid="order-details-content"]').exists()).toBe(false)
     expect(body().text()).toContain('編輯訂單')
     expect(body().find('input[placeholder="例如 日本郵便 EMS"]').element.value).toBe('DHL')
     const updated = order({ shippingMethod: '日本郵便 EMS', trackingNumber: 'NEW' })
