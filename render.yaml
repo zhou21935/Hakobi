@@ -2,6 +2,7 @@ services:
   - type: web
     name: hakobi-web
     runtime: static
+    plan: free
     branch: main
     autoDeployTrigger: checksPass
     buildCommand: npm ci && npm run build
@@ -21,6 +22,7 @@ services:
   - type: web
     name: hakobi-api
     runtime: node
+    plan: free
     branch: main
     autoDeployTrigger: checksPass
     rootDir: server
