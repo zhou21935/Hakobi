@@ -18,7 +18,8 @@ describe('deployment configuration contract', () => {
     const blueprint = await readProjectFile('render.yaml')
 
     expect(blueprint.match(/branch:\s*main/g)).toHaveLength(2)
-    expect(blueprint.match(/plan:\s*free/g)).toHaveLength(2)
+    expect(blueprint.match(/plan:\s*free/g)).toHaveLength(1)
+    expect(blueprint).toMatch(/runtime:\s*node\s*\n\s+plan:\s*free/)
     expect(blueprint.match(/autoDeployTrigger:\s*checksPass/g)).toHaveLength(2)
     expect(blueprint).toMatch(/runtime:\s*static[\s\S]*?staticPublishPath:\s*\.\/dist/)
     expect(blueprint).toMatch(/type:\s*rewrite[\s\S]*?source:\s*\/\*[\s\S]*?destination:\s*\/index\.html/)

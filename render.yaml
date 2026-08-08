@@ -2,7 +2,6 @@ services:
   - type: web
     name: hakobi-web
     runtime: static
-    plan: free
     branch: main
     autoDeployTrigger: checksPass
     buildCommand: npm ci && npm run build
