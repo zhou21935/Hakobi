@@ -24,4 +24,4 @@
 ## 5. 部署安全與整體驗證
 
 - [x] 5.1 依「使用不洩漏帳號存在性的 Email 回應」與部署規格更新 `docs/supabase-setup.md`、README 及環境 URL helper，交付 `Supabase Auth requires verified email and baseline password strength`、`Authentication redirects are explicitly allowlisted` 與 `Production authentication email uses configured SMTP`：記錄 signup/Confirm Email/8+letters+digits、local/production callbacks、template、SMTP/rate limit、dedicated test-account cleanup；以 config tests、內容審查及不含 secrets 的 production build 驗證。
-- [ ] 5.2 依 Implementation Contract 執行完整回歸與部署前驗收：前端 domain/store/view/router tests、migration tests、兩個並行 username 註冊、confirmation/recovery Email smoke test、`npm test`、server test/typecheck/build、frontend build、`spectra validate add-self-service-account-access` 全部通過，並確認第三方登入、username login、Fastify 會員 API 與 profile 編輯未進入差異。
+- [x] 5.2 依 Implementation Contract 執行完整回歸與部署前驗收：前端 domain/store/view/router tests、migration tests、兩個並行 username 註冊、confirmation/recovery Email smoke test、`npm test`、server test/typecheck/build、frontend build、`spectra validate add-self-service-account-access` 全部通過，並確認第三方登入、username login、Fastify 會員 API 與 profile 編輯未進入差異。
