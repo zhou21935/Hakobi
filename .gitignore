@@ -27,3 +27,8 @@ dist-ssr
 *.sw?
 .spectra/
 openspec/.vector-search.db*
+
+# Local generated artifacts
+output/
+tmp/
+supabase/.branches/
