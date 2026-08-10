@@ -17,7 +17,9 @@ const isSafeProductUrl = (value) => {
 }
 
 export const validateOrder = (data) => {
+  const supportedCategories = ['agent', 'parcel']
   const errors = {
+    category: supportedCategories.includes(data.category) ? null : '請選擇訂單分類',
     name: typeof data.name !== 'string' || data.name.trim() === '' ? '商品名稱不可為空' : null,
     amount: Number.isFinite(data.amount) && data.amount > 0 ? null : '金額須為大於 0 的數字',
     productCategories: Array.isArray(data.productCategories) && data.productCategories.length > 0 ? null : '請至少選擇一項商品分類',

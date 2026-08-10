@@ -1,8 +1,11 @@
 <template>
   <div class="p-4 md:p-8 space-y-6">
-    <div class="max-w-6xl">
-      <h1 class="text-2xl md:text-4xl font-heading font-bold text-ink mb-2">全部訂單</h1>
-      <p class="text-base md:text-lg text-ink-muted">跨分類檢視所有訂單</p>
+    <div class="flex max-w-6xl flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div>
+        <h1 class="text-2xl md:text-4xl font-heading font-bold text-ink mb-2">全部訂單</h1>
+        <p class="text-base md:text-lg text-ink-muted">跨分類檢視所有訂單</p>
+      </div>
+      <Button data-testid="create-order" class="w-full md:w-auto" @click="openCreateForm">+ 新增訂單</Button>
     </div>
 
     <div class="max-w-6xl">
@@ -32,9 +35,15 @@
 
     <OrderFormModal v-model="isFormOpen" :order="editingOrder" :pending="store.isMutating" @submit="handleSubmit" />
     <OrderDetailsModal v-if="selectedOrder" v-model="isDetailsOpen" :order="selectedOrder" @edit="openEditFromDetails" />
+    <DeleteUndoToast v-if="store.pendingDelete" :order-name="store.pendingDelete.order.name" @undo="store.undoDelete" />
 
-    <Modal v-model="isConfirmOpen" title="確認刪除">
-      <p class="text-ink-muted">確定要刪除這筆訂單嗎?此操作無法復原。</p>
+    <Modal v-model="isConfirmOpen" title="確認刪除" title-class="font-semibold">
+      <div class="space-y-2">
+        <p data-testid="delete-confirm-prompt" class="font-semibold text-ink">確定要刪除這筆訂單嗎？如刪除後欲恢復可使用下方「復原」按鈕取消刪除。</p>
+        <p data-testid="delete-undo-warning" class="text-sm text-red-600">
+          請留意：一旦重新整理或離開本頁面，已刪除之資料將無法再復原。
+        </p>
+      </div>
       <template #footer>
         <Button variant="secondary" size="sm" @click="isConfirmOpen = false">取消</Button>
         <Button variant="danger" size="sm" :disabled="store.isMutating" @click="confirmDelete">{{ store.isMutating ? '刪除中…' : '刪除' }}</Button>
@@ -44,7 +53,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useOrdersStore, STATUSES } from '@/stores/orders'
 import Button from '@/components/ui/Button.vue'
 import Modal from '@/components/ui/Modal.vue'
@@ -53,6 +62,7 @@ import SearchSortControls from '@/components/orders/SearchSortControls.vue'
 import OrderCard from '@/components/orders/OrderCard.vue'
 import OrderFormModal from '@/components/orders/OrderFormModal.vue'
 import OrderDetailsModal from '@/components/orders/OrderDetailsModal.vue'
+import DeleteUndoToast from '@/components/orders/DeleteUndoToast.vue'
 
 const store = useOrdersStore()
 onMounted(() => {
@@ -96,9 +106,15 @@ const openEditForm = (order) => {
   isFormOpen.value = true
 }
 
+const openCreateForm = () => {
+  editingOrder.value = null
+  isFormOpen.value = true
+}
+
 const handleSubmit = async (payload) => {
   try {
     if (editingOrder.value) await store.updateOrder(editingOrder.value.id, payload)
+    else await store.addOrder(payload)
     isFormOpen.value = false
   } catch {}
 }
@@ -113,11 +129,13 @@ const requestDelete = (id) => {
 
 const confirmDelete = async () => {
   try {
-    await store.deleteOrder(pendingDeleteId.value)
+    await store.stageDelete(pendingDeleteId.value)
     isConfirmOpen.value = false
     pendingDeleteId.value = null
   } catch {}
 }
+
+onBeforeUnmount(() => { store.finalizePendingDelete().catch(() => {}) })
 
 const openEditFromDetails = (order) => {
   isDetailsOpen.value = false

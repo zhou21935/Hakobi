@@ -1,6 +1,15 @@
 <template>
   <Modal :model-value="modelValue" :title="isEditMode ? '編輯訂單' : '新增訂單'" @update:model-value="$emit('update:modelValue', $event)">
     <div class="space-y-4">
+      <Select
+        v-if="showCategorySelect"
+        v-model="form.category"
+        label="訂單分類"
+        placeholder="請選擇訂單分類"
+        test-id="order-category"
+        :options="categoryOptions"
+      />
+      <p v-if="categoryError" class="text-sm text-red-600">{{ categoryError }}</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input v-model="form.name" label="商品名稱" placeholder="請輸入商品名稱" :error="nameError" />
         <Input v-model="form.platform" label="購買平台" placeholder="例如 Amazon" />
@@ -68,12 +77,18 @@ const props = defineProps({
     type: Object,
     default: null
   },
-  pending: { type: Boolean, default: false }
+  pending: { type: Boolean, default: false },
+  category: { type: String, default: null }
 })
 
 const emit = defineEmits(['update:modelValue', 'submit'])
 
 const isEditMode = computed(() => props.order !== null)
+const showCategorySelect = computed(() => !isEditMode.value && !props.category)
+const categoryOptions = [
+  { value: 'agent', label: '海外代購' },
+  { value: 'parcel', label: '集運包裹' }
+]
 
 const currencyOptions = [
   { value: 'TWD', label: 'TWD' },
@@ -93,6 +108,7 @@ const productCategoryOptions = Object.values(PRODUCT_CATEGORIES).map((value) => 
 }))
 
 const emptyForm = () => ({
+  category: '',
   name: '',
   platform: '',
   productUrl: '',
@@ -115,6 +131,7 @@ const nameError = ref('')
 const amountError = ref('')
 const productCategoriesError = ref('')
 const productUrlError = ref('')
+const categoryError = ref('')
 
 const toDateOnly = (value) => {
   if (!value) return ''
@@ -127,9 +144,11 @@ const resetForm = () => {
   amountError.value = ''
   productCategoriesError.value = ''
   productUrlError.value = ''
+  categoryError.value = ''
   if (props.order) {
     Object.assign(form, emptyForm(), {
       name: props.order.name || '',
+      category: props.order.category || props.category || '',
       platform: props.order.platform || '',
       productUrl: props.order.productUrl || '',
       amount: props.order.amount ?? '',
@@ -146,7 +165,7 @@ const resetForm = () => {
       notes: props.order.notes || ''
     })
   } else {
-    Object.assign(form, emptyForm())
+    Object.assign(form, emptyForm(), { category: props.category || '' })
   }
 }
 
@@ -169,6 +188,7 @@ const handleSubmit = () => {
   amountError.value = errors.amount || ''
   productCategoriesError.value = errors.productCategories || ''
   productUrlError.value = errors.productUrl || ''
+  categoryError.value = errors.category || ''
 
   if (!isValid) {
     return

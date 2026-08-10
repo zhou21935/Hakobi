@@ -22,14 +22,19 @@ describe('normalizeOrderInput', () => {
 })
 
 describe('validateOrder', () => {
-  it('is valid with all three errors null when name, amount, and productCategories are all valid', () => {
-    const { isValid, errors } = validateOrder({ name: 'Widget', amount: 10, productCategories: ['merch'] })
+  it('is valid when category, name, amount, and productCategories are all valid', () => {
+    const { isValid, errors } = validateOrder({ category: 'agent', name: 'Widget', amount: 10, productCategories: ['merch'] })
     expect(isValid).toBe(true)
-    expect(errors).toEqual({ name: null, amount: null, productCategories: null, productUrl: null })
+    expect(errors).toEqual({ category: null, name: null, amount: null, productCategories: null, productUrl: null })
+  })
+
+  it('rejects a missing or unsupported order category', () => {
+    expect(validateOrder({ name: 'Widget', amount: 10, productCategories: ['merch'] }).errors.category).toBe('請選擇訂單分類')
+    expect(validateOrder({ category: 'unknown', name: 'Widget', amount: 10, productCategories: ['merch'] }).errors.category).toBe('請選擇訂單分類')
   })
 
   it('sets errors.name when name is an empty string', () => {
-    const { isValid, errors } = validateOrder({ name: '', amount: 10, productCategories: ['merch'] })
+    const { isValid, errors } = validateOrder({ category: 'agent', name: '', amount: 10, productCategories: ['merch'] })
     expect(isValid).toBe(false)
     expect(errors.name).toBe('商品名稱不可為空')
     expect(errors.amount).toBeNull()
@@ -37,7 +42,7 @@ describe('validateOrder', () => {
   })
 
   it('sets errors.amount when amount is zero', () => {
-    const { isValid, errors } = validateOrder({ name: 'Widget', amount: 0, productCategories: ['merch'] })
+    const { isValid, errors } = validateOrder({ category: 'agent', name: 'Widget', amount: 0, productCategories: ['merch'] })
     expect(isValid).toBe(false)
     expect(errors.amount).toBe('金額須為大於 0 的數字')
     expect(errors.name).toBeNull()
@@ -45,13 +50,13 @@ describe('validateOrder', () => {
   })
 
   it('sets errors.amount when amount is negative', () => {
-    const { isValid, errors } = validateOrder({ name: 'Widget', amount: -5, productCategories: ['merch'] })
+    const { isValid, errors } = validateOrder({ category: 'agent', name: 'Widget', amount: -5, productCategories: ['merch'] })
     expect(isValid).toBe(false)
     expect(errors.amount).toBe('金額須為大於 0 的數字')
   })
 
   it('sets errors.productCategories when productCategories is an empty array', () => {
-    const { isValid, errors } = validateOrder({ name: 'Widget', amount: 10, productCategories: [] })
+    const { isValid, errors } = validateOrder({ category: 'agent', name: 'Widget', amount: 10, productCategories: [] })
     expect(isValid).toBe(false)
     expect(errors.productCategories).toBe('請至少選擇一項商品分類')
     expect(errors.name).toBeNull()
@@ -65,7 +70,7 @@ describe('validateOrder', () => {
     ['javascript:alert(1)', false],
     ['example.com/item/1', false]
   ])('validates product URL boundary %j', (productUrl, expectedValid) => {
-    const { isValid, errors } = validateOrder({ name: 'Widget', amount: 10, productCategories: ['merch'], productUrl })
+    const { isValid, errors } = validateOrder({ category: 'agent', name: 'Widget', amount: 10, productCategories: ['merch'], productUrl })
     expect(isValid).toBe(expectedValid)
     expect(errors.productUrl).toBe(expectedValid ? null : '商品連結須為有效的 HTTP 或 HTTPS 網址')
   })

@@ -30,7 +30,7 @@ const parseJson = async (response) => {
 export const createOrdersApi = ({ baseUrl, fetchImpl = fetch, getSession }) => {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
 
-  const request = async (path, { method = 'GET', body, expectedStatus }) => {
+  const request = async (path, { method = 'GET', body, expectedStatus, keepalive = false }) => {
     const session = await getSession()
     if (!session?.access_token) throw new OrdersApiError('AUTH_UNAUTHORIZED', safeMessages.AUTH_UNAUTHORIZED, 401)
 
@@ -38,6 +38,7 @@ export const createOrdersApi = ({ baseUrl, fetchImpl = fetch, getSession }) => {
     try {
       response = await fetchImpl(`${normalizedBaseUrl}${path}`, {
         method,
+        ...(keepalive ? { keepalive: true } : {}),
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
@@ -75,8 +76,8 @@ export const createOrdersApi = ({ baseUrl, fetchImpl = fetch, getSession }) => {
       if (!payload?.data || typeof payload.data !== 'object' || Array.isArray(payload.data)) throw new OrdersApiError('INVALID_RESPONSE', safeMessages.INVALID_RESPONSE, 200)
       return payload.data
     },
-    async deleteOrder(id) {
-      await request(`/api/orders/${encodeURIComponent(id)}`, { method: 'DELETE', expectedStatus: 204 })
+    async deleteOrder(id, { keepalive = false } = {}) {
+      await request(`/api/orders/${encodeURIComponent(id)}`, { method: 'DELETE', expectedStatus: 204, keepalive })
     }
   }
 }

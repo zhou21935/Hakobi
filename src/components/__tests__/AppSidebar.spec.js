@@ -26,6 +26,12 @@ describe('AppSidebar category navigation', () => {
       expect.stringContaining('集運包裹')
     ])
   })
+
+  it('omits the development-only UI showcase destination', () => {
+    const wrapper = mount(AppSidebar, { global: { plugins: [router] } })
+    expect(wrapper.find('a[href="/ui-showcase"]').exists()).toBe(false)
+    expect(wrapper.find('a[href="/orders"]').exists()).toBe(true)
+  })
 })
 
 describe('AppSidebar responsive drawer behavior', () => {

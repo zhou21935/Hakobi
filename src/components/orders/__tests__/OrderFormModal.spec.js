@@ -9,9 +9,9 @@ const fillRequiredFields = async () => {
   await body().find('input[type="number"]').setValue(100)
 }
 
-const mountForm = (order = null) =>
+const mountForm = (order = null, extraProps = {}) =>
   mount(OrderFormModal, {
-    props: { modelValue: true, order, pending: false },
+    props: { modelValue: true, order, pending: false, category: 'agent', ...extraProps },
     attachTo: document.body
   })
 
@@ -59,6 +59,38 @@ describe('OrderFormModal preorder checkbox', () => {
     const labels = body().findAll('label').map((l) => l.text())
     expect(labels.some((text) => text.includes('送往集運倉'))).toBe(false)
     wrapper.unmount()
+  })
+})
+
+describe('OrderFormModal order category', () => {
+  it('requires a category in all-orders create mode and submits the selected category', async () => {
+    const wrapper = mountForm(null, { category: null })
+    await fillRequiredFields()
+    await selectProductCategories(['周邊'])
+    await submitForm()
+    expect(wrapper.emitted('submit')).toBeUndefined()
+    expect(body().text()).toContain('請選擇訂單分類')
+    const categorySelect = body().findAll('select').find((select) => select.attributes('data-testid') === 'order-category')
+    await categorySelect.setValue('parcel')
+    await submitForm()
+    expect(wrapper.emitted('submit').at(-1)[0].category).toBe('parcel')
+    wrapper.unmount()
+  })
+
+  it('uses the locked route category for create and keeps edit category unchanged', async () => {
+    const create = mountForm(null, { category: 'parcel' })
+    expect(body().find('[data-testid="order-category"]').exists()).toBe(false)
+    await fillRequiredFields()
+    await selectProductCategories(['周邊'])
+    await submitForm()
+    expect(create.emitted('submit').at(-1)[0].category).toBe('parcel')
+    create.unmount()
+    document.body.innerHTML = ''
+
+    const edit = mountForm({ category: 'agent', name: 'Book', amount: 100, productCategories: ['book'] }, { category: null })
+    await submitForm()
+    expect(edit.emitted('submit').at(-1)[0].category).toBe('agent')
+    edit.unmount()
   })
 })
 

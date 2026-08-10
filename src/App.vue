@@ -1,21 +1,31 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppSidebar from '@/components/AppSidebar.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useOrdersStore } from '@/stores/orders'
 
 const isSidebarOpen = ref(false)
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const orders = useOrdersStore()
 
 watch(() => auth.isAuthenticated, (authenticated) => {
   if (auth.initialized && !authenticated && route.name !== 'Login') router.replace({ name: 'Login' })
-})
+  if (auth.initialized && authenticated && !orders.initialized && !orders.isLoading) {
+    orders.loadOrders().catch(() => {})
+  }
+}, { immediate: true })
 
 const logout = async () => {
+  await orders.finalizePendingDelete().catch(() => {})
   await auth.signOut()
 }
+
+const finalizeOnUnload = () => { orders.finalizePendingDelete({ keepalive: true }).catch(() => {}) }
+onMounted(() => window.addEventListener('beforeunload', finalizeOnUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', finalizeOnUnload))
 </script>
 
 <template>

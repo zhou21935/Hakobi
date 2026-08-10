@@ -6,6 +6,7 @@
 
     <select
       :id="selectId"
+      :data-testid="testId || undefined"
       :disabled="disabled"
       :value="modelValue"
       :class="selectClass"
@@ -42,7 +43,8 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
-  }
+  },
+  testId: { type: String, default: '' }
 })
 
 defineEmits(['update:modelValue'])

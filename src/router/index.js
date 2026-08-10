@@ -6,8 +6,9 @@ const OrderList = () => import('@/views/OrderList.vue')
 const AllOrders = () => import('@/views/AllOrders.vue')
 const UiShowcase = () => import('@/views/UiShowcase.vue')
 const Login = () => import('@/views/Login.vue')
+const NotFound = () => import('@/views/NotFound.vue')
 
-const routes = [
+export const routes = [
   {
     path: '/login',
     name: 'Login',
@@ -36,7 +37,14 @@ const routes = [
     path: '/orders/:category',
     name: 'OrderList',
     component: OrderList,
-    meta: { title: '訂單', requiresAuth: true }
+    meta: { title: '訂單', requiresAuth: true },
+    beforeEnter: (to) => ['agent', 'parcel'].includes(to.params.category) ? true : { name: 'NotFound' }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: NotFound,
+    meta: { title: '找不到頁面', requiresAuth: true }
   }
 ]
 

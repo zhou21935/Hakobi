@@ -49,6 +49,7 @@ export const useOrdersStore = defineStore('orders', () => {
   const isMutating = ref(false)
   const initialized = ref(false)
   const error = ref(null)
+  const pendingDelete = ref(null)
 
   const storeError = (caught) => {
     if (caught?.status === 401 || caught?.code === 'AUTH_UNAUTHORIZED') {
@@ -119,10 +120,40 @@ export const useOrdersStore = defineStore('orders', () => {
     })
   }
 
+  const finalizePendingDelete = async ({ keepalive = false } = {}) => {
+    if (!pendingDelete.value) return
+    const snapshot = pendingDelete.value
+    pendingDelete.value = null
+    try {
+      await mutate(() => ordersApi.deleteOrder(snapshot.order.id, { keepalive }))
+    } catch (caught) {
+      const restoreAt = Math.min(snapshot.index, orders.value.length)
+      if (!orders.value.some(({ id }) => id === snapshot.order.id)) orders.value.splice(restoreAt, 0, snapshot.order)
+      throw caught
+    }
+  }
+
+  const stageDelete = async (id) => {
+    if (pendingDelete.value) await finalizePendingDelete()
+    const index = orders.value.findIndex(order => order.id === id)
+    if (index === -1) throw localError('ORDER_NOT_FOUND', '找不到訂單')
+    const [order] = orders.value.splice(index, 1)
+    pendingDelete.value = { order, index }
+  }
+
+  const undoDelete = () => {
+    if (!pendingDelete.value) return false
+    const { order, index } = pendingDelete.value
+    pendingDelete.value = null
+    if (!orders.value.some(({ id }) => id === order.id)) orders.value.splice(Math.min(index, orders.value.length), 0, order)
+    return true
+  }
+
   const clearOrders = () => {
     orders.value = []
     error.value = null
     initialized.value = false
+    pendingDelete.value = null
   }
 
   const getByCategory = computed(() => {
@@ -188,12 +219,16 @@ export const useOrdersStore = defineStore('orders', () => {
     isMutating,
     initialized,
     error,
+    pendingDelete,
     loadOrders,
     retry,
     clearOrders,
     addOrder,
     updateOrder,
     deleteOrder,
+    stageDelete,
+    undoDelete,
+    finalizePendingDelete,
     getByCategory,
     getFiltered,
     stats

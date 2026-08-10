@@ -8,7 +8,7 @@
     >
       <div data-testid="modal-panel" class="w-full max-w-md max-h-[85vh] overflow-hidden rounded-card bg-white shadow-card text-ink flex flex-col">
         <div v-if="title" class="px-5 py-4 shrink-0">
-          <h2 class="text-lg font-heading font-semibold text-ink">{{ title }}</h2>
+          <h2 data-testid="modal-title" :class="['text-lg font-heading text-ink', titleClass]">{{ title }}</h2>
         </div>
 
         <div data-testid="modal-content" class="modal-scroll-area min-h-0 px-5 py-4 flex-1 overflow-y-auto">
@@ -34,6 +34,10 @@ const props = defineProps({
   title: {
     type: String,
     default: ''
+  },
+  titleClass: {
+    type: String,
+    default: 'font-semibold'
   }
 })
 

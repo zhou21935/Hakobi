@@ -48,17 +48,6 @@
           </router-link>
         </li>
 
-        <li>
-          <router-link
-            to="/ui-showcase"
-            class="flex items-center gap-3 px-4 py-2 rounded-full text-ink hover:bg-white/50 transition-colors"
-            :class="isActive('/ui-showcase') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
-            @click="$emit('update:open', false)"
-          >
-            🎨 UI 元件展示
-          </router-link>
-        </li>
-
         <!-- Orders by Category -->
         <li class="pt-4">
           <p class="px-4 py-2 text-sm font-heading font-semibold text-ink-muted uppercase">分類</p>

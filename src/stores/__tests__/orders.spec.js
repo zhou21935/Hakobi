@@ -77,15 +77,15 @@ describe('confirmed mutations', () => {
     api.createOrder.mockResolvedValue(created)
     const store = useOrdersStore()
 
-    await expect(store.addOrder({ name: '', amount: 10, productCategories: ['book'] })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+    await expect(store.addOrder({ category: 'agent', name: '', amount: 10, productCategories: ['book'] })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
     expect(api.createOrder).not.toHaveBeenCalled()
-    await expect(store.addOrder({ name: ' Created ', amount: '10', productCategories: ['book'] })).resolves.toEqual(created)
+    await expect(store.addOrder({ category: 'agent', name: ' Created ', amount: '10', productCategories: ['book'] })).resolves.toEqual(created)
     expect(store.orders).toEqual([created])
   })
 
   it('rejects an unsafe product URL without issuing an API mutation', async () => {
     const store = useOrdersStore()
-    await expect(store.addOrder({ name: 'Book', amount: 10, productCategories: ['book'], productUrl: 'javascript:alert(1)' })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+    await expect(store.addOrder({ category: 'agent', name: 'Book', amount: 10, productCategories: ['book'], productUrl: 'javascript:alert(1)' })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
     expect(api.createOrder).not.toHaveBeenCalled()
   })
 
@@ -117,12 +117,58 @@ describe('confirmed mutations', () => {
     let resolveCreate
     api.createOrder.mockImplementation(() => new Promise((resolve) => { resolveCreate = resolve }))
     const store = useOrdersStore()
-    const pending = store.addOrder({ name: 'Book', amount: 10, productCategories: ['book'] })
+    const pending = store.addOrder({ category: 'agent', name: 'Book', amount: 10, productCategories: ['book'] })
 
-    await expect(store.addOrder({ name: 'Other', amount: 20, productCategories: ['book'] })).rejects.toMatchObject({ code: 'MUTATION_IN_PROGRESS' })
+    await expect(store.addOrder({ category: 'agent', name: 'Other', amount: 20, productCategories: ['book'] })).rejects.toMatchObject({ code: 'MUTATION_IN_PROGRESS' })
     expect(api.createOrder).toHaveBeenCalledOnce()
     resolveCreate(order())
     await pending
+  })
+})
+
+describe('view-scoped delete undo', () => {
+  it('removes immediately and restores the same order at its original index without calling the API', async () => {
+    const a = order({ id: 'order-a', name: 'A' })
+    const b = order({ id: 'order-b', name: 'B' })
+    api.listOrders.mockResolvedValue([a, b])
+    const store = useOrdersStore()
+    await store.loadOrders()
+    const activeA = store.orders[0]
+
+    await store.stageDelete('order-a')
+    expect(store.orders.map(({ id }) => id)).toEqual(['order-b'])
+    expect(store.pendingDelete.order).toBe(activeA)
+    store.undoDelete()
+    expect(store.orders[0]).toBe(activeA)
+    expect(store.orders).toEqual([a, b])
+    expect(store.pendingDelete).toBeNull()
+    expect(api.deleteOrder).not.toHaveBeenCalled()
+  })
+
+  it('finalizes the first pending order exactly once before staging a second', async () => {
+    api.deleteOrder.mockResolvedValue(undefined)
+    api.listOrders.mockResolvedValue([order({ id: 'order-a' }), order({ id: 'order-b' })])
+    const store = useOrdersStore()
+    await store.loadOrders()
+    await store.stageDelete('order-a')
+    await store.stageDelete('order-b')
+    expect(api.deleteOrder).toHaveBeenCalledTimes(1)
+    expect(api.deleteOrder).toHaveBeenCalledWith('order-a', { keepalive: false })
+    expect(store.pendingDelete.order.id).toBe('order-b')
+  })
+
+  it('restores confirmed state when finalization fails and forwards keepalive safely', async () => {
+    const confirmed = order({ id: 'order-a' })
+    api.listOrders.mockResolvedValue([confirmed])
+    api.deleteOrder.mockRejectedValue(new Error('delete failed'))
+    const store = useOrdersStore()
+    await store.loadOrders()
+    await store.stageDelete('order-a')
+    await expect(store.finalizePendingDelete({ keepalive: true })).rejects.toThrow('delete failed')
+    expect(api.deleteOrder).toHaveBeenCalledWith('order-a', { keepalive: true })
+    expect(store.orders).toEqual([confirmed])
+    expect(store.pendingDelete).toBeNull()
+    expect(store.error).toBe('delete failed')
   })
 })
 

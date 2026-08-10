@@ -49,6 +49,12 @@ describe('orders API client', () => {
     expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ name: 'Book' })
   })
 
+  it('opts into fetch keepalive only when finalizing during document unload', async () => {
+    const { api, fetchImpl } = setup([{ ok: true, status: 204, json: vi.fn() }])
+    await api.deleteOrder('order-a', { keepalive: true })
+    expect(fetchImpl.mock.calls[0][1]).toMatchObject({ method: 'DELETE', keepalive: true })
+  })
+
   it.each([
     [400, 'VALIDATION_ERROR', 'Invalid order'],
     [401, 'AUTH_UNAUTHORIZED', '請重新登入'],

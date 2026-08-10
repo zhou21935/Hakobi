@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 const authState = vi.hoisted(() => ({ initialized: false, isAuthenticated: false, initialize: vi.fn() }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => authState }))
 
-import { createAuthGuard } from '@/router'
+import { createAuthGuard, routes } from '@/router'
 
 describe('authentication route guard', () => {
   beforeEach(() => {
@@ -34,5 +34,15 @@ describe('authentication route guard', () => {
     const result = await guard({ meta: { requiresAuth: true }, fullPath: '/orders' })
 
     expect(result).toEqual({ name: 'Login', query: { redirect: '/orders' } })
+  })
+})
+
+describe('route completeness', () => {
+  it('accepts only agent and parcel category routes and provides a catch-all Not Found route', () => {
+    const categoryRoute = routes.find(({ name }) => name === 'OrderList')
+    expect(categoryRoute.beforeEnter({ params: { category: 'agent' } })).toBe(true)
+    expect(categoryRoute.beforeEnter({ params: { category: 'parcel' } })).toBe(true)
+    expect(categoryRoute.beforeEnter({ params: { category: 'unknown' } })).toEqual({ name: 'NotFound' })
+    expect(routes.at(-1)).toMatchObject({ path: '/:pathMatch(.*)*', name: 'NotFound' })
   })
 })

@@ -33,11 +33,17 @@
       />
     </div>
 
-    <OrderFormModal v-model="isFormOpen" :order="editingOrder" :pending="store.isMutating" @submit="handleSubmit" />
+    <OrderFormModal v-model="isFormOpen" :order="editingOrder" :category="category" :pending="store.isMutating" @submit="handleSubmit" />
     <OrderDetailsModal v-if="selectedOrder" v-model="isDetailsOpen" :order="selectedOrder" @edit="openEditFromDetails" />
+    <DeleteUndoToast v-if="store.pendingDelete" :order-name="store.pendingDelete.order.name" @undo="store.undoDelete" />
 
-    <Modal v-model="isConfirmOpen" title="確認刪除">
-      <p class="text-ink-muted">確定要刪除這筆訂單嗎?此操作無法復原。</p>
+    <Modal v-model="isConfirmOpen" title="確認刪除" title-class="font-semibold">
+      <div class="space-y-2">
+        <p data-testid="delete-confirm-prompt" class="font-semibold text-ink">確定要刪除這筆訂單嗎？如刪除後欲恢復可使用下方「復原」按鈕取消刪除。</p>
+        <p data-testid="delete-undo-warning" class="text-sm text-red-600">
+          請留意：一旦重新整理或離開本頁面，已刪除之資料將無法再復原。
+        </p>
+      </div>
       <template #footer>
         <Button variant="secondary" size="sm" @click="isConfirmOpen = false">取消</Button>
         <Button variant="danger" size="sm" :disabled="store.isMutating" @click="confirmDelete">{{ store.isMutating ? '刪除中…' : '刪除' }}</Button>
@@ -47,7 +53,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useOrdersStore, STATUSES, CATEGORY_LABELS } from '@/stores/orders'
 import Button from '@/components/ui/Button.vue'
@@ -57,6 +63,7 @@ import SearchSortControls from '@/components/orders/SearchSortControls.vue'
 import OrderCard from '@/components/orders/OrderCard.vue'
 import OrderFormModal from '@/components/orders/OrderFormModal.vue'
 import OrderDetailsModal from '@/components/orders/OrderDetailsModal.vue'
+import DeleteUndoToast from '@/components/orders/DeleteUndoToast.vue'
 
 const route = useRoute()
 const category = computed(() => route.params.category)
@@ -120,7 +127,7 @@ const openEditForm = (order) => {
 const handleSubmit = async (payload) => {
   try {
     if (editingOrder.value) await store.updateOrder(editingOrder.value.id, payload)
-    else await store.addOrder({ ...payload, category: category.value })
+    else await store.addOrder(payload)
     isFormOpen.value = false
   } catch {}
 }
@@ -135,11 +142,13 @@ const requestDelete = (id) => {
 
 const confirmDelete = async () => {
   try {
-    await store.deleteOrder(pendingDeleteId.value)
+    await store.stageDelete(pendingDeleteId.value)
     isConfirmOpen.value = false
     pendingDeleteId.value = null
   } catch {}
 }
+
+onBeforeUnmount(() => { store.finalizePendingDelete().catch(() => {}) })
 
 const openEditFromDetails = (order) => {
   isDetailsOpen.value = false
