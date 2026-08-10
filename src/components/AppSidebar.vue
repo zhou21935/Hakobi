@@ -75,6 +75,8 @@
 
     <!-- Footer -->
     <div class="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-sidebar-border">
+      <p data-testid="member-identity" class="mb-1 truncate text-sm font-semibold text-ink">{{ username || identityFallback || '會員' }}</p>
+      <button v-if="profileError" type="button" class="mb-2 text-xs text-red-700 underline" @click="$emit('retry-profile')">會員資料載入失敗，重試</button>
       <button
         data-testid="logout-button"
         type="button"
@@ -96,10 +98,13 @@ defineProps({
   open: {
     type: Boolean,
     default: false
-  }
+  },
+  username: { type: String, default: '' },
+  identityFallback: { type: String, default: '' },
+  profileError: { type: String, default: '' }
 })
 
-defineEmits(['update:open', 'logout'])
+defineEmits(['update:open', 'logout', 'retry-profile'])
 
 const route = useRoute()
 

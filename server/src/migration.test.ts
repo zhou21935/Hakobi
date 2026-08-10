@@ -28,4 +28,54 @@ describe('migration', () => {
     expect(sql).not.toMatch(/drop column (amount|currency|is_paid)/)
     expect(sql.match(/drop column/g)).toHaveLength(2)
   })
+
+  it('creates member profiles with validated normalized uniqueness and owner-only reads', () => {
+    const sql = migration('20260811000000_create_member_profiles.sql')
+
+    expect(sql).toContain('create table public.member_profiles')
+    expect(sql).toContain('references auth.users(id) on delete cascade')
+    expect(sql).toContain('username_normalized text not null unique')
+    expect(sql).toContain('char_length(username) between 3 and 20')
+    expect(sql).toContain("username ~ '^[a-za-z0-9_一-龥]+$'")
+    expect(sql).toContain('username_normalized = lower(btrim(username))')
+    expect(sql).toContain('enable row level security')
+    expect(sql).toContain('create policy "owners select profile"')
+    expect(sql).toContain('using ((select auth.uid()) = user_id)')
+    expect(sql).toContain('grant select on public.member_profiles to authenticated')
+    expect(sql).not.toMatch(/grant (insert|update|delete|all).*member_profiles/)
+  })
+
+  it('exposes only a boolean availability rpc and keeps the unique key as the concurrent-registration arbiter', () => {
+    const sql = migration('20260811000000_create_member_profiles.sql')
+
+    expect(sql).toContain('create function public.is_username_available')
+    expect(sql).toContain('returns boolean')
+    expect(sql).toContain('where username_normalized = lower(btrim(candidate))')
+    expect(sql).toContain('grant execute on function public.is_username_available(text) to anon, authenticated')
+    expect(sql).not.toMatch(/on conflict \(username_normalized\) do (nothing|update)/)
+    expect(sql).toContain('revoke all on function public.is_username_available(text) from public')
+  })
+
+  it('creates profiles atomically from validated auth metadata without swallowing username conflicts', () => {
+    const sql = migration('20260811000000_create_member_profiles.sql')
+    const triggerFunction = sql.slice(
+      sql.indexOf('create function public.create_member_profile_for_auth_user()'),
+      sql.indexOf('revoke all on function public.create_member_profile_for_auth_user()')
+    )
+
+    expect(sql).toContain('create trigger auth_user_create_profile')
+    expect(sql).toContain('raw_user_meta_data')
+    expect(sql).toContain("raise exception using errcode = '22023'")
+    expect(sql).toContain('values (new.id, display_name, lower(display_name))')
+    expect(triggerFunction).not.toContain('on conflict')
+    expect(sql).toContain('revoke all on function public.create_member_profile_for_auth_user() from public, anon, authenticated')
+  })
+
+  it('deterministically backfills every existing auth user and asserts that no orphan remains', () => {
+    const sql = migration('20260811000000_create_member_profiles.sql')
+
+    expect(sql).toContain('on conflict (user_id) do nothing')
+    expect(sql).toContain("substring(id::text, 1, 8)")
+    expect(sql).toContain("raise exception 'existing auth user without a member profile'")
+  })
 })

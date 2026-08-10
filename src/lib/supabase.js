@@ -28,6 +28,13 @@ export const validateFrontendConfig = (env) => {
 
 export const getFrontendConfig = () => validateFrontendConfig(import.meta.env)
 
+export const authRedirectUrl = (path) => {
+  if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//')) {
+    throw new TypeError('Auth redirect path must be a same-origin absolute path')
+  }
+  return new URL(path.replace(/^\//, ''), `${window.location.origin}${import.meta.env.BASE_URL}`).toString()
+}
+
 export const getSupabase = () => {
   if (!client) {
     const config = getFrontendConfig()

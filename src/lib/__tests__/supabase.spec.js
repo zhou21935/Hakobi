@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validateFrontendConfig } from '@/lib/supabase'
+import { authRedirectUrl, validateFrontendConfig } from '@/lib/supabase'
 
 const valid = {
   VITE_SUPABASE_URL: 'https://project.supabase.co',
@@ -18,5 +18,11 @@ describe('frontend configuration', () => {
 
   it('rejects non-HTTP service URLs', () => {
     expect(() => validateFrontendConfig({ ...valid, VITE_API_BASE_URL: 'javascript:alert(1)' })).toThrow('VITE_API_BASE_URL must use HTTP or HTTPS')
+  })
+
+  it('builds only same-origin authentication callbacks', () => {
+    expect(authRedirectUrl('/verify-email')).toBe(`${window.location.origin}/verify-email`)
+    expect(() => authRedirectUrl('//evil.example')).toThrow('same-origin')
+    expect(() => authRedirectUrl('https://evil.example')).toThrow('same-origin')
   })
 })

@@ -29,7 +29,34 @@
 - `SUPABASE_URL`、`SUPABASE_DB_URL`、`CORS_ORIGIN`、`PORT`。
 - `SUPABASE_DB_URL` 是 server secret，不得加上 `VITE_`、寫入前端設定、log 或版本控制。
 
-在 Authentication → Providers → Email 關閉公開註冊，並建立兩個專用 verification users。應用後端不保存密碼，也不使用 service-role key。
+## Auth 註冊、驗證與密碼政策
+
+在 Supabase Dashboard 完成以下設定後才開放正式註冊入口：
+
+1. Authentication → Providers → Email：開啟公開 Email signup 與 **Confirm Email**。
+2. Authentication → Password Security：minimum length 設為 8，required characters 設為 letters and digits。Hakobi 前端另外限制最多 64 字元、禁止空白、不得等同使用名稱並拒絕專案弱密碼集合。
+3. Authentication → URL Configuration：Site URL 設為正式前端 origin，Redirect URLs 明確加入：
+   - `http://localhost:5173/verify-email`
+   - `http://localhost:5173/reset-password`
+   - `https://<frontend-host>/verify-email`
+   - `https://<frontend-host>/reset-password`
+4. Email confirmation 與 password recovery template 必須使用 `RedirectTo`／允許清單內的 Hakobi callback，不得導向使用者提供的任意 origin。
+
+開發環境可使用 Supabase 預設寄信服務；正式環境必須在 Authentication → SMTP Settings 設定 custom SMTP，確認 sender domain、From name/address、provider rate limit 與退信監控。SMTP password/API key 只存於 Supabase，不得放入前端、repository 或部署 log。
+
+應用後端不保存密碼，也不使用 service-role key。會員使用名稱由 `member_profiles` migration 的 unique normalized key、Auth trigger 與 RLS 保護。
+
+### Auth Email smoke verification
+
+使用一個專用、可接收信件的 test account：
+
+1. 從 `/register` 註冊，確認未點信件前不能進入受保護頁面。
+2. 確認 confirmation Email sender 正確，連結只導回正式 `/verify-email`，點擊後可進入 `/orders`。
+3. 從 `/forgot-password` 申請 recovery Email，確認連結只導回正式 `/reset-password`，且新密碼須符合 8–64 字元、letter+digit 規則。
+4. 測試 resend rate-limit 時只顯示稍後再試，不揭露帳號是否存在。
+5. 成功或失敗後都從 Supabase Authentication Users 刪除 test account，確認 cascade 同時清除 profile；部署紀錄不得保存 Email、密碼或 Token。
+
+若任一封信未送達、callback origin 不正確、未驗證帳號取得 session、或測試帳號無法清理，部署驗證失敗。
 
 ## 部署後 smoke verification
 

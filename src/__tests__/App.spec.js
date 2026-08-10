@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 
 const state = vi.hoisted(() => ({
-  auth: { initialized: true, isAuthenticated: true, signOut: vi.fn() },
+  auth: { initialized: true, isAuthenticated: true, profile: null, profileLoading: false, profileError: null, user: { email: 'owner@example.com' }, loadProfile: vi.fn(), signOut: vi.fn() },
   orders: { initialized: false, isLoading: false, loadOrders: vi.fn(), finalizePendingDelete: vi.fn() },
   route: { meta: { requiresAuth: true }, name: 'Dashboard' },
   router: { replace: vi.fn() }
@@ -20,11 +20,15 @@ describe('application order initialization', () => {
     state.orders.loadOrders.mockReset().mockResolvedValue(undefined)
     state.orders.finalizePendingDelete.mockReset().mockResolvedValue(undefined)
     state.auth.signOut.mockReset().mockResolvedValue(undefined)
+    state.auth.profile = null
+    state.auth.profileLoading = false
+    state.auth.loadProfile.mockReset().mockResolvedValue(undefined)
   })
 
   it('loads orders when the dashboard is the first protected view and does not duplicate a completed load', async () => {
     const wrapper = mount(App, { global: { stubs: { AppSidebar: true, RouterView: true } } })
     expect(state.orders.loadOrders).toHaveBeenCalledOnce()
+    expect(state.auth.loadProfile).toHaveBeenCalledOnce()
     state.orders.initialized = true
     await wrapper.vm.$nextTick()
     expect(state.orders.loadOrders).toHaveBeenCalledOnce()
