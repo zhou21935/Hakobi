@@ -1,599 +1,28 @@
-# supabase-environment-deployment Specification
+# member-profile Specification
 
 ## Purpose
 
-TBD - created by archiving change 'order-supabase-integration'. Update Purpose after archive.
+TBD - created by archiving change 'add-self-service-account-access'. Update Purpose after archive.
 
 ## Requirements
 
-### Requirement: The target Supabase database receives repository migrations
-The deployment workflow MUST link an explicitly selected Supabase project and apply all pending files from `supabase/migrations` without resetting remote data. Re-running the workflow with no new migrations SHALL make no schema changes. The deployed schema SHALL include the orders model and the member profile table, normalized username uniqueness, profile creation trigger, availability RPC, and Row Level Security policies required by repository migrations.
+### Requirement: Member usernames have a canonical format
+A member username MUST contain between 3 and 20 Unicode characters inclusive and MUST contain only Han characters, ASCII letters, ASCII digits, or underscore. It MUST NOT contain whitespace or other symbols. The system SHALL preserve the submitted display form and SHALL derive the uniqueness key by trimming and Unicode lowercasing the value.
 
-#### Scenario: Pending member profile migration is deployed
-- **WHEN** an operator selects the intended project and pushes the repository migrations
-- **THEN** the target database SHALL contain the member profile table, username constraints, normalized unique index, Auth user trigger, availability RPC, cascade ownership, and Row Level Security policies defined by the migration
+#### Scenario: Username format is validated
+- **WHEN** a visitor enters a member username
+- **THEN** the system SHALL produce the expected result in the format example
 
-#### Scenario: Deployment is repeated
-- **WHEN** the operator runs the migration push again with no new migration files
-- **THEN** the command SHALL report no pending migrations and SHALL preserve existing Auth users, profiles, and orders
+##### Example: username format cases
 
-#### Scenario: Existing Auth users are backfilled
-- **WHEN** the member profile migration finds an existing Auth user without a profile
-- **THEN** it SHALL create a valid unique display username derived from the email local-part plus a deterministic short user-ID suffix and SHALL report no orphan Auth users after migration
-
-
-<!-- @trace
-source: add-self-service-account-access
-updated: 2026-08-11
-code:
-  - tmp/pdfs/chrome-profile/Default/Web Data-journal
-  - tmp/pdfs/chrome-profile-qa/Default/Sessions/Session_13430687835319079
-  - .agents/skills/spectra-archive/SKILL.md
-  - tmp/pdfs/chrome-profile-qa/Default/Sync Data/LevelDB/LOCK
-  - tmp/pdfs/chrome-profile/Crashpad/settings.dat
-  - tmp/pdfs/chrome-profile/Default/Safe Browsing Network/NetworkDataMigrated
-  - tmp/pdfs/chrome-profile/Default/Cache/No_Vary_Search/snapshot.baf
-  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SegmentInfoDB/LOCK
-  - src/views/ResetPassword.vue
-  - tmp/pdfs/chrome-pdf-qa/Default/Site Characteristics Database/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension State/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Login Data
-  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/CURRENT
-  - tmp/pdfs/chrome-profile-qa/Default/Code Cache/js/index-dir/the-real-index
-  - tmp/pdfs/chrome-profile-qa/GrShaderCache/data_3
-  - tmp/pdfs/chrome-profile/Default/Code Cache/js/ba678a2fbd8c358c_0
-  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SignalDB/LOG
-  - tmp/pdfs/chrome-profile/Default/Session Storage/MANIFEST-000001
-  - tmp/pdfs/chrome-profile-qa/Default/PersistentOriginTrials/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Login Data-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension State/MANIFEST-000001
-  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/Database/LOG
-  - tmp/pdfs/chrome-profile/Default/Extension Scripts/LOG
-  - src/views/ForgotPassword.vue
-  - tmp/pdfs/chrome-profile/Default/GPUCache/data_1
-  - tmp/pdfs/chrome-profile/Default/Network/Network Persistent State
-  - tmp/pdfs/chrome-pdf-qa/Default/Account Web Data
-  - tmp/pdfs/chrome-profile-qa/Default/discount_infos_db/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/CURRENT
-  - tmp/pdfs/chrome-profile/Default/Network/Device Bound Sessions-journal
-  - tmp/pdfs/chrome-profile/Default/BookmarkMergedSurfaceOrdering
-  - tmp/pdfs/chrome-profile/Default/Sync Data/LevelDB/MANIFEST-000001
-  - tmp/pdfs/chrome-pdf-qa/Default/Affiliation Database-journal
-  - tmp/pdfs/chrome-profile-qa/Default/Extension State/CURRENT
-  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SegmentInfoDB/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/WebStorage/QuotaManager-journal
-  - tmp/pdfs/chrome-profile/Default/Extension Scripts/MANIFEST-000001
-  - tmp/pdfs/chrome-pdf-qa/Default/Site Characteristics Database/LOCK
-  - tmp/pdfs/chrome-profile/Default/Local Storage/leveldb/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/Default/Cache/No_Vary_Search/journal.baj
-  - tmp/pdfs/chrome-profile-qa/Default/Preferences
-  - tmp/pdfs/chrome-profile/Default/Local Storage/leveldb/LOCK
-  - tmp/pdfs/chrome-profile/Default/Network/Reporting and NEL
-  - tmp/pdfs/chrome-profile/en-US-10-1.bdic
-  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/metadata/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SignalDB/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SignalStorageConfigDB/LOG
-  - tmp/pdfs/chrome-pdf-qa/Variations
-  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/metadata/LOCK
-  - tmp/pdfs/chrome-profile/Default/engine_allowlist.bf
-  - tmp/pdfs/chrome-profile/ShaderCache/data_1
-  - tmp/pdfs/chrome-profile/Default/Favicons
-  - tmp/pdfs/chrome-profile-qa/Default/Login Data For Account
-  - tmp/pdfs/chrome-profile/Default/DawnWebGPUCache/data_3
-  - src/views/Register.vue
-  - tmp/pdfs/chrome-profile/Last Version
-  - tmp/pdfs/chrome-profile/Default/Extension State/LOG
-  - tmp/pdfs/chrome-profile/Default/Sync Data/LevelDB/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/trusted_vault.pb
-  - src/lib/supabase.js
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension Scripts/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/data_3
-  - tmp/pdfs/chrome-profile/Default/Extension State/LOCK
-  - tmp/pdfs/chrome-profile/Default/ServerCertificate
-  - tmp/pdfs/chrome-pdf-qa/Default/Affiliation Database
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension Rules/LOCK
-  - tmp/pdfs/chrome-profile/Default/Session Storage/LOG
-  - tmp/pdfs/chrome-profile/Default/Site Characteristics Database/MANIFEST-000001
-  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/ScriptCache/index-dir/the-real-index
-  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/ScriptCache/4cb013792b196a35_1
-  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/metadata/MANIFEST-000001
-  - tmp/pdfs/chrome-profile/Default/GPUCache/data_0
-  - tmp/pdfs/chrome-profile-qa/Default/DawnWebGPUCache/data_2
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension Scripts/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/Sync Data/LevelDB/CURRENT
-  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SegmentInfoDB/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Site Characteristics Database/LOG
-  - tmp/pdfs/chrome-pdf-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db-wal
-  - tmp/pdfs/chrome-profile-qa/Crashpad/metadata
-  - tmp/pdfs/chrome-pdf-qa/Default/DawnGraphiteCache/index
-  - tmp/pdfs/chrome-profile/Default/Local Storage/leveldb/MANIFEST-000001
-  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SignalStorageConfigDB/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SignalStorageConfigDB/LOCK
-  - tmp/pdfs/chrome-profile/Default/shared_proto_db/LOCK
-  - tmp/pdfs/chrome-profile/Variations
-  - tmp/pdfs/chrome-profile-qa/Default/LOCK
-  - supabase/migrations/20260811000000_create_member_profiles.sql
-  - tmp/pdfs/chrome-profile-qa/Default/Affiliation Database
-  - tmp/pdfs/chrome-profile/Default/chrome_cart_db/LOG
-  - tmp/pdfs/chrome-profile/Default/shared_proto_db/metadata/MANIFEST-000001
-  - tmp/pdfs/chrome-profile-qa/Default/Code Cache/wasm/index-dir/the-real-index
-  - tmp/pdfs/chrome-profile/Default/Login Data-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/DawnWebGPUCache/data_3
-  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/ScriptCache/2cc80dabc69f58b6_0
-  - tmp/pdfs/chrome-profile/Default/Login Data
-  - tmp/pdfs/chrome-profile/Default/ClientCertificates/LOCK
-  - tmp/pdfs/chrome-profile/Default/Sync Data/LevelDB/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/discounts_db/LOCK
-  - tmp/pdfs/chrome-pdf-qa/Default/Top Sites-journal
-  - tmp/pdfs/chrome-pdf-qa/ShaderCache/data_2
-  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/Database/LOCK
-  - tmp/pdfs/chrome-profile-qa/Variations
-  - tmp/pdfs/chrome-profile/Default/discount_infos_db/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Cache/Cache_Data/index
-  - tmp/pdfs/chrome-pdf-qa/Default/discounts_db/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Preferences
-  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/metadata/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/GPUCache/data_2
-  - tmp/pdfs/chrome-profile/Default/Sessions/Tabs_13430687822256285
-  - tmp/pdfs/chrome-profile/Default/WebStorage/QuotaManager
-  - tmp/pdfs/chrome-profile/VariationsSafeSeedV2
-  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/ScriptCache/index
-  - src/domain/accountValidation.js
-  - tmp/pdfs/chrome-profile-qa/Default/declarative_performance_observer.db-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/Cache/Cache_Data/data_1
-  - tmp/pdfs/chrome-profile-qa/Default/Sessions/Tabs_13430687835325049
-  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/metadata/LOG
-  - README.md
-  - tmp/pdfs/chrome-profile/Crashpad/metadata
-  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SignalDB/LOCK
-  - tmp/pdfs/chrome-profile/Default/discount_infos_db/LOCK
-  - tmp/pdfs/chrome-profile/GrShaderCache/data_0
-  - tmp/pdfs/chrome-profile-qa/Default/Site Characteristics Database/CURRENT
-  - tmp/pdfs/chrome-profile-qa/Default/Extension State/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/engine_allowlist.bf
-  - tmp/pdfs/chrome-profile/Default/commerce_subscription_db/LOCK
-  - tmp/pdfs/chrome-pdf-qa/GrShaderCache/data_2
-  - tmp/pdfs/chrome-pdf-qa/Default/Network/Cookies-journal
-  - tmp/pdfs/chrome-profile-qa/Default/chrome_cart_db/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Web Data-journal
-  - .agents/skills/spectra-commit/SKILL.md
-  - tmp/pdfs/chrome-profile-qa/Default/ServerCertificate
-  - tmp/pdfs/chrome-profile/Default/Service Worker/Database/MANIFEST-000001
-  - tmp/pdfs/chrome-pdf-qa/Default/Code Cache/js/index-dir/the-real-index
-  - src/components/AppSidebar.vue
-  - tmp/pdfs/chrome-pdf-qa/Default/commerce_subscription_db/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/metadata/MANIFEST-000001
-  - tmp/pdfs/chrome-profile/Default/Code Cache/js/index-dir/the-real-index
-  - tmp/pdfs/chrome-pdf-qa/Default/GPUCache/data_2
-  - .agents/skills/spectra-ingest/SKILL.md
-  - tmp/pdfs/chrome-profile/Default/Preferences
-  - .agents/skills/spectra-propose/SKILL.md
-  - .agents/skills/spectra-ask/SKILL.md
-  - tmp/pdfs/chrome-pdf-qa/CrashpadMetrics-active.pma
-  - tmp/pdfs/chrome-pdf-qa/Last Version
-  - tmp/pdfs/chrome-profile-qa/Default/Extension Scripts/CURRENT
-  - tmp/pdfs/chrome-profile-qa/Default/Safe Browsing Network/NetworkDataMigrated
-  - tmp/pdfs/chrome-profile-qa/Default/Top Sites-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/History
-  - tmp/pdfs/chrome-pdf-qa/Default/BookmarkMergedSurfaceOrdering
-  - tmp/pdfs/chrome-profile/Default/DawnWebGPUCache/data_2
-  - tmp/pdfs/chrome-profile-qa/Default/Network/Cookies
-  - tmp/pdfs/chrome-pdf-qa/Default/Code Cache/js/ba678a2fbd8c358c_0
-  - tmp/pdfs/chrome-pdf-qa/Default/declarative_performance_observer.db
-  - tmp/pdfs/chrome-pdf-qa/Default/Network/Trust Tokens-journal
-  - tmp/pdfs/chrome-profile-qa/Last Version
-  - tmp/pdfs/chrome-profile-qa/Default/Web Data-journal
-  - tmp/pdfs/chrome-profile/Default/Account Web Data
-  - tmp/pdfs/chrome-profile-qa/ShaderCache/index
-  - tmp/pdfs/chrome-pdf-qa/Default/Cache/Cache_Data/data_3
-  - tmp/pdfs/chrome-pdf-qa/Default/ClientCertificates/LOG
-  - src/App.vue
-  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/Database/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/Default/Sessions/Tabs_13430687870496258
-  - tmp/pdfs/chrome-profile-qa/Default/BookmarkMergedSurfaceOrdering
-  - tmp/pdfs/chrome-profile-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db
-  - tmp/pdfs/chrome-pdf-qa/extensions_crx_cache/metadata.json
-  - tmp/pdfs/chrome-profile/Default/shared_proto_db/metadata/LOCK
-  - tmp/pdfs/chrome-pdf-qa/Default/Network/NetworkDataMigrated
-  - tmp/pdfs/chrome-pdf-qa/Default/Code Cache/wasm/index-dir/the-real-index
-  - tmp/pdfs/chrome-profile-qa/Default/parcel_tracking_db/LOCK
-  - tmp/pdfs/chrome-profile/Default/Login Data For Account
-  - tmp/pdfs/chrome-pdf-qa/Default/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SignalDB/LOG
-  - tmp/pdfs/chrome-profile/Default/shared_proto_db/metadata/LOG
-  - tmp/pdfs/chrome-profile/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.journal
-  - tmp/pdfs/chrome-pdf-qa/Crashpad/metadata
-  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SignalDB/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Favicons
-  - tmp/pdfs/chrome-profile-qa/Default/GPUCache/data_1
-  - tmp/pdfs/chrome-profile/Default/Extension Rules/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Account Web Data
-  - tmp/pdfs/chrome-pdf-qa/Default/Network/Trust Tokens
-  - tmp/pdfs/chrome-pdf-qa/Default/GPUCache/data_3
-  - tmp/pdfs/hakobi-deployment-troubleshooting.html
-  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/data_1
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension State/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/GrShaderCache/data_3
-  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SignalDB/LOCK
-  - tmp/pdfs/chrome-profile-qa/extensions_crx_cache/metadata.json
-  - tmp/pdfs/chrome-pdf-qa/Default/DawnGraphiteCache/data_0
-  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/data_1
-  - tmp/pdfs/chrome-profile-qa/Default/Sync Data/LevelDB/MANIFEST-000001
-  - src/views/Login.vue
-  - tmp/pdfs/chrome-profile-qa/Default/History
-  - tmp/pdfs/chrome-profile/VariationsSeedV2
-  - tmp/pdfs/chrome-profile-qa/Default/Session Storage/LOCK
-  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/data_3
-  - tmp/pdfs/chrome-profile/Default/DawnGraphiteCache/index
-  - tmp/pdfs/chrome-profile/Default/README
-  - tmp/pdfs/chrome-pdf-qa/Default/declarative_performance_observer.db-journal
-  - tmp/pdfs/chrome-profile/GrShaderCache/data_2
-  - tmp/pdfs/chrome-profile-qa/GrShaderCache/data_1
-  - tmp/pdfs/chrome-pdf-qa/Default/README
-  - tmp/pdfs/chrome-profile-qa/Default/DawnWebGPUCache/data_0
-  - tmp/pdfs/chrome-profile/Default/Service Worker/Database/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/Default/Sync Data/LevelDB/CURRENT
-  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/data_2
-  - tmp/pdfs/chrome-profile-qa/Default/discounts_db/LOG
-  - tmp/pdfs/chrome-profile/Default/parcel_tracking_db/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/Site Characteristics Database/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/DawnGraphiteCache/data_0
-  - tmp/pdfs/chrome-profile-qa/Default/GPUCache/data_3
-  - tmp/pdfs/chrome-pdf-qa/Default/chrome_cart_db/LOG
-  - tmp/pdfs/chrome-profile/Default/Extension Rules/CURRENT
-  - tmp/pdfs/chrome-profile/Default/Network/Trust Tokens
-  - tmp/pdfs/chrome-pdf-qa/Default/Network/Device Bound Sessions-journal
-  - tmp/pdfs/chrome-profile/Default/History-journal
-  - tmp/pdfs/chrome-profile/Default/Network/Reporting and NEL-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension Rules/MANIFEST-000001
-  - tmp/pdfs/chrome-pdf-qa/Default/Sync Data/LevelDB/LOCK
-  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/Database/MANIFEST-000001
-  - tmp/pdfs/chrome-pdf-qa/Default/Network/Network Persistent State
-  - tmp/pdfs/chrome-pdf-qa/Default/Code Cache/js/index
-  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SignalStorageConfigDB/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Network/TransportSecurity
-  - tmp/pdfs/chrome-profile/GrShaderCache/data_1
-  - tmp/pdfs/chrome-pdf-qa/Default/WebStorage/QuotaManager
-  - tmp/pdfs/chrome-profile/Default/Extension State/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/Default/DawnWebGPUCache/data_2
-  - tmp/pdfs/chrome-profile-qa/Default/Local Storage/leveldb/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension Scripts/MANIFEST-000001
-  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SegmentInfoDB/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/Extension Rules/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/Session Storage/LOG
-  - tmp/pdfs/chrome-profile/Default/Sessions/Session_13430687822250612
-  - tmp/pdfs/chrome-pdf-qa/Default/Shared Dictionary/cache/index-dir/the-real-index
-  - tmp/pdfs/chrome-profile/Default/DawnGraphiteCache/data_1
-  - tmp/pdfs/chrome-profile-qa/Default/DawnWebGPUCache/data_3
-  - tmp/pdfs/chrome-profile-qa/Default/Extension State/LOCK
-  - tmp/pdfs/chrome-profile-qa/ShaderCache/data_1
-  - tmp/pdfs/chrome-profile/ShaderCache/data_2
-  - tmp/pdfs/chrome-pdf-qa/Default/Top Sites
-  - .agents/skills/spectra-discuss/SKILL.md
-  - tmp/pdfs/chrome-profile/Default/shared_proto_db/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/Default/Sync Data/LevelDB/MANIFEST-000001
-  - tmp/pdfs/chrome-pdf-qa/ShaderCache/data_1
-  - tmp/pdfs/chrome-profile-qa/Default/GPUCache/data_0
-  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/LOCK
-  - tmp/pdfs/chrome-profile/Default/DawnGraphiteCache/data_3
-  - tmp/pdfs/chrome-profile-qa/Default/DawnWebGPUCache/data_1
-  - tmp/pdfs/chrome-pdf-qa/Default/Login Data For Account-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SegmentInfoDB/LOG
-  - tmp/pdfs/chrome-profile/CrashpadMetrics-active.pma
-  - tmp/pdfs/chrome-pdf-qa/GrShaderCache/data_1
-  - tmp/pdfs/chrome-pdf-qa/Default/Safe Browsing Network/NetworkDataMigrated
-  - tmp/pdfs/chrome-profile-qa/Default/Web Data
-  - tmp/pdfs/chrome-profile/Default/Service Worker/ScriptCache/2cc80dabc69f58b6_0
-  - tmp/pdfs/chrome-profile/segmentation_platform/ukm_db
-  - tmp/pdfs/chrome-profile/Default/DawnWebGPUCache/data_0
-  - tmp/pdfs/chrome-profile-qa/GrShaderCache/index
-  - src/stores/auth.js
-  - tmp/pdfs/chrome-profile-qa/GrShaderCache/data_2
-  - tmp/pdfs/chrome-profile/Default/Network/Device Bound Sessions
-  - tmp/pdfs/chrome-profile/Default/PersistentOriginTrials/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/DawnWebGPUCache/index
-  - tmp/pdfs/chrome-profile/Default/Network/Cookies-journal
-  - tmp/pdfs/chrome-profile/Default/Service Worker/Database/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/Extension Scripts/LOG
-  - tmp/pdfs/chrome-profile/Default/Service Worker/ScriptCache/4cb013792b196a35_1
-  - tmp/pdfs/chrome-profile/Default/Shared Dictionary/db
-  - tmp/pdfs/chrome-profile/Default/Site Characteristics Database/CURRENT
-  - tmp/pdfs/chrome-profile/extensions_crx_cache/metadata.json
-  - tmp/pdfs/chrome-profile-qa/Default/Favicons-journal
-  - tmp/pdfs/chrome-profile/Default/trusted_vault.pb
-  - tmp/pdfs/chrome-pdf-qa/Default/WebStorage/QuotaManager-journal
-  - tmp/pdfs/chrome-profile-qa/Default/declarative_performance_observer.db
-  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/Database/MANIFEST-000001
-  - tmp/pdfs/chrome-profile/Default/ServerCertificate-journal
-  - tmp/pdfs/chrome-profile/Default/Service Worker/ScriptCache/index
-  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/LOG
-  - .agents/skills/spectra-debug/SKILL.md
-  - tmp/pdfs/chrome-profile-qa/Default/README
-  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/Database/CURRENT
-  - tmp/pdfs/chrome-profile-qa/Default/Sync Data/LevelDB/LOG
-  - tmp/pdfs/chrome-profile/Default/parcel_tracking_db/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Network/Cookies-journal
-  - tmp/pdfs/chrome-profile/Default/chrome_cart_db/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/Login Data
-  - tmp/pdfs/chrome-profile/Default/declarative_performance_observer.db-journal
-  - tmp/pdfs/chrome-profile-qa/Default/WebStorage/QuotaManager
-  - tmp/pdfs/chrome-pdf-qa/Default/Session Storage/LOCK
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension State/LOCK
-  - tmp/pdfs/chrome-profile/Local State
-  - tmp/pdfs/chrome-profile-qa/Default/Top Sites
-  - tmp/pdfs/chrome-profile-qa/Default/Extension Scripts/LOCK
-  - tmp/pdfs/chrome-profile/Default/Code Cache/wasm/index
-  - tmp/pdfs/chrome-profile/Default/Local Storage/leveldb/LOG
-  - tmp/pdfs/chrome-profile/Default/Extension Rules/MANIFEST-000001
-  - tmp/pdfs/chrome-profile/Default/Shared Dictionary/db-journal
-  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/index
-  - tmp/pdfs/chrome-pdf-qa/Default/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Local Storage/leveldb/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db
-  - tmp/pdfs/chrome-pdf-qa/ShaderCache/data_0
-  - tmp/pdfs/chrome-profile-qa/Default/Session Storage/CURRENT
-  - tmp/pdfs/chrome-profile/Default/GPUCache/data_3
-  - src/router/index.js
-  - tmp/pdfs/chrome-profile-qa/ShaderCache/data_0
-  - tmp/pdfs/chrome-pdf-qa/Default/DawnGraphiteCache/data_3
-  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/Database/LOCK
-  - tmp/pdfs/chrome-profile/Default/Login Data For Account-journal
-  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/MANIFEST-000001
-  - tmp/pdfs/chrome-profile/Default/Shared Dictionary/cache/index
-  - tmp/pdfs/chrome-pdf-qa/Default/Sessions/Session_13430687870490430
-  - tmp/pdfs/chrome-profile/ShaderCache/data_3
-  - tmp/pdfs/chrome-profile/Default/Session Storage/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/parcel_tracking_db/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/discount_infos_db/LOCK
-  - tmp/pdfs/chrome-profile/Default/declarative_performance_observer.db
-  - tmp/pdfs/chrome-profile/Default/DawnWebGPUCache/data_1
-  - tmp/pdfs/chrome-profile/Default/Top Sites-journal
-  - tmp/pdfs/chrome-profile-qa/Default/Site Characteristics Database/MANIFEST-000001
-  - output/pdf/Hakobi_Render部署與除錯紀錄.pdf
-  - docs/supabase-setup.md
-  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/index
-  - tmp/pdfs/chrome-pdf-qa/Default/PersistentOriginTrials/LOCK
-  - tmp/pdfs/chrome-pdf-qa/Default/History-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/DawnWebGPUCache/data_0
-  - tmp/pdfs/chrome-profile-qa/Default/Cache/No_Vary_Search/journal.baj
-  - tmp/pdfs/chrome-profile/Default/ClientCertificates/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Network/Reporting and NEL-journal
-  - tmp/pdfs/chrome-pdf-qa/GrShaderCache/data_0
-  - tmp/pdfs/chrome-pdf-qa/Default/GPUCache/index
-  - tmp/pdfs/chrome-profile-qa/Default/Extension Rules/MANIFEST-000001
-  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/LOG
-  - tmp/pdfs/chrome-profile/Default/Favicons-journal
-  - tmp/pdfs/chrome-profile-qa/Default/commerce_subscription_db/LOG
-  - tmp/pdfs/chrome-profile/Default/Affiliation Database-journal
-  - tmp/pdfs/chrome-profile/Default/DawnGraphiteCache/data_2
-  - tmp/pdfs/chrome-profile/Default/discounts_db/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Login Data For Account-journal
-  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/f_000001
-  - tmp/pdfs/chrome-profile/Default/Network/Trust Tokens-journal
-  - tmp/pdfs/chrome-pdf-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.journal
-  - tmp/pdfs/chrome-profile-qa/Default/ClientCertificates/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/Code Cache/js/index
-  - tmp/pdfs/chrome-profile-qa/Default/Shared Dictionary/db-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/Login Data-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension Rules/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/Default/DawnGraphiteCache/data_2
-  - tmp/pdfs/chrome-profile-qa/Default/Cache/No_Vary_Search/snapshot.baf
-  - src/views/VerifyEmail.vue
-  - tmp/pdfs/chrome-pdf-qa/Default/Local Storage/leveldb/CURRENT
-  - tmp/pdfs/chrome-profile-qa/Default/DawnGraphiteCache/data_2
-  - tmp/pdfs/chrome-profile/Default/Code Cache/js/index
-  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SignalStorageConfigDB/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/Shared Dictionary/cache/index-dir/the-real-index
-  - tmp/pdfs/chrome-profile/Default/Service Worker/ScriptCache/4cb013792b196a35_0
-  - supabase/.branches/_current_branch
-  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SegmentInfoDB/LOCK
-  - tmp/pdfs/chrome-pdf-qa/ShaderCache/index
-  - tmp/pdfs/chrome-profile/Default/Affiliation Database
-  - tmp/pdfs/chrome-profile/Default/Site Characteristics Database/LOG
-  - tmp/pdfs/chrome-profile/Default/shared_proto_db/LOG
-  - tmp/pdfs/chrome-profile/Default/DawnWebGPUCache/index
-  - tmp/pdfs/chrome-profile/Default/Cache/No_Vary_Search/journal.baj
-  - tmp/pdfs/chrome-profile-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.journal
-  - tmp/pdfs/chrome-pdf-qa/Default/GPUCache/data_0
-  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/metadata/CURRENT
-  - tmp/pdfs/chrome-profile/Default/History
-  - tmp/pdfs/chrome-pdf-qa/Default/Network/Device Bound Sessions
-  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/ScriptCache/index
-  - tmp/pdfs/chrome-pdf-qa/Default/DawnGraphiteCache/data_1
-  - .agents/skills/spectra-drift/SKILL.md
-  - tmp/pdfs/chrome-pdf-qa/GrShaderCache/index
-  - tmp/pdfs/chrome-pdf-qa/Default/Session Storage/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Local Storage/leveldb/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/LOCK
-  - tmp/pdfs/chrome-profile/Default/shared_proto_db/metadata/CURRENT
-  - tmp/pdfs/chrome-profile-qa/Default/Extension State/MANIFEST-000001
-  - tmp/pdfs/chrome-profile-qa/Default/Extension Rules/CURRENT
-  - tmp/pdfs/chrome-profile/Default/Top Sites
-  - tmp/pdfs/chrome-pdf-qa/Local State
-  - tmp/pdfs/chrome-pdf-qa/Default/Favicons-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/parcel_tracking_db/LOCK
-  - tmp/pdfs/chrome-pdf-qa/Default/engine_allowlist.bf
-  - tmp/pdfs/chrome-pdf-qa/Default/ClientCertificates/LOCK
-  - tmp/pdfs/chrome-profile/Default/Extension Rules/LOCK
-  - tmp/pdfs/chrome-pdf-qa/Default/Shared Dictionary/db-journal
-  - tmp/pdfs/chrome-profile-qa/Default/Network/Reporting and NEL-journal
-  - tmp/pdfs/chrome-profile/Default/Extension Scripts/CURRENT
-  - tmp/pdfs/chrome-profile/Default/Site Characteristics Database/LOCK
-  - .agents/skills/spectra-apply/SKILL.md
-  - tmp/pdfs/chrome-profile-qa/Default/PersistentOriginTrials/LOCK
-  - tmp/pdfs/chrome-pdf-qa/Default/Login Data For Account
-  - tmp/pdfs/chrome-pdf-qa/Default/Session Storage/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension Rules/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/ScriptCache/4cb013792b196a35_0
-  - tmp/pdfs/chrome-profile-qa/Default/Local Storage/leveldb/LOCK
-  - tmp/pdfs/chrome-pdf-qa/Default/DawnWebGPUCache/index
-  - tmp/pdfs/chrome-pdf-qa/Default/Site Characteristics Database/MANIFEST-000001
-  - tmp/pdfs/chrome-pdf-qa/Default/Account Web Data-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/Cache/Cache_Data/data_0
-  - tmp/pdfs/chrome-pdf-qa/Default/Sync Data/LevelDB/LOG
-  - tmp/pdfs/chrome-profile/ShaderCache/index
-  - tmp/pdfs/chrome-profile-qa/Default/DawnGraphiteCache/index
-  - tmp/pdfs/chrome-pdf-qa/Default/Secure Preferences
-  - tmp/pdfs/chrome-pdf-qa/Default/Shared Dictionary/cache/index
-  - tmp/pdfs/chrome-pdf-qa/ShaderCache/data_3
-  - tmp/pdfs/chrome-profile-qa/Default/LOG
-  - tmp/pdfs/chrome-profile/Default/Secure Preferences
-  - tmp/pdfs/chrome-profile-qa/ShaderCache/data_2
-  - tmp/pdfs/chrome-pdf-qa/Default/Network/Reporting and NEL
-  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/f_000001
-  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/data_2
-  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/ScriptCache/index-dir/the-real-index
-  - tmp/pdfs/chrome-profile/Default/GPUCache/data_2
-  - tmp/pdfs/chrome-pdf-qa/Default/Cache/No_Vary_Search/snapshot.baf
-  - tmp/pdfs/chrome-pdf-qa/Default/Shared Dictionary/db
-  - tmp/pdfs/chrome-pdf-qa/Default/parcel_tracking_db/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Network/NetworkDataMigrated
-  - tmp/pdfs/chrome-profile/Default/discounts_db/LOCK
-  - tmp/pdfs/chrome-pdf-qa/Default/Local Storage/leveldb/MANIFEST-000001
-  - tmp/pdfs/chrome-profile-qa/Default/DawnGraphiteCache/data_1
-  - tmp/pdfs/chrome-profile/Default/Service Worker/Database/LOG
-  - tmp/pdfs/chrome-profile/GrShaderCache/data_3
-  - tmp/pdfs/chrome-profile-qa/Default/Network/Network Persistent State
-  - tmp/pdfs/chrome-pdf-qa/Default/GPUCache/data_1
-  - tmp/pdfs/chrome-profile-qa/Default/Session Storage/MANIFEST-000001
-  - tmp/pdfs/chrome-profile-qa/Default/discounts_db/LOCK
-  - tmp/pdfs/chrome-profile-qa/Default/Favicons
-  - tmp/pdfs/chrome-profile-qa/Default/GPUCache/index
-  - tmp/pdfs/chrome-profile-qa/Default/ServerCertificate-journal
-  - tmp/pdfs/chrome-profile-qa/Default/Code Cache/wasm/index
-  - tmp/pdfs/chrome-profile-qa/segmentation_platform/ukm_db
-  - tmp/pdfs/chrome-profile-qa/Crashpad/settings.dat
-  - tmp/pdfs/chrome-pdf-qa/Default/Extension Scripts/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/Default/chrome_cart_db/LOCK
-  - tmp/pdfs/chrome-pdf-qa/Default/Session Storage/MANIFEST-000001
-  - tmp/pdfs/chrome-profile/Default/LOCK
-  - tmp/pdfs/chrome-profile/Default/Account Web Data-journal
-  - tmp/pdfs/chrome-profile-qa/Default/Network/Trust Tokens-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/Local Storage/leveldb/LOG
-  - tmp/pdfs/chrome-profile/Default/Shared Dictionary/cache/index-dir/the-real-index
-  - tmp/pdfs/chrome-profile/Default/DawnGraphiteCache/data_0
-  - tmp/pdfs/chrome-profile-qa/ShaderCache/data_3
-  - tmp/pdfs/chrome-pdf-qa/Default/discount_infos_db/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/discount_infos_db/LOCK
-  - tmp/pdfs/chrome-profile/Default/PersistentOriginTrials/LOG
-  - tmp/pdfs/chrome-profile/Default/shared_proto_db/MANIFEST-000001
-  - tmp/pdfs/chrome-pdf-qa/Default/ServerCertificate-journal
-  - tmp/pdfs/chrome-profile-qa/Local State
-  - tmp/pdfs/chrome-profile-qa/Default/commerce_subscription_db/LOCK
-  - tmp/pdfs/chrome-profile/ShaderCache/data_0
-  - tmp/pdfs/chrome-profile-qa/Default/Shared Dictionary/cache/index
-  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/ScriptCache/4cb013792b196a35_0
-  - tmp/pdfs/chrome-profile-qa/Default/Extension Rules/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/Extension Scripts/MANIFEST-000001
-  - tmp/pdfs/chrome-profile/Default/Extension State/MANIFEST-000001
-  - tmp/pdfs/chrome-profile-qa/Default/Secure Preferences
-  - tmp/pdfs/chrome-pdf-qa/Default/Web Data
-  - tmp/pdfs/chrome-profile-qa/Default/Code Cache/js/ba678a2fbd8c358c_0
-  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/metadata/CURRENT
-  - tmp/pdfs/pdf-page-1.png
-  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/data_0
-  - tmp/pdfs/chrome-profile-qa/Default/Network/Device Bound Sessions
-  - tmp/pdfs/chrome-profile/Default/WebStorage/QuotaManager-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/Network/Cookies
-  - tmp/pdfs/chrome-profile/Default/Network/Cookies
-  - tmp/pdfs/chrome-pdf-qa/Default/commerce_subscription_db/LOCK
-  - tmp/pdfs/chrome-profile/Default/Network/TransportSecurity
-  - tmp/pdfs/chrome-profile-qa/Default/ClientCertificates/LOG
-  - tmp/pdfs/chrome-profile-qa/Default/DawnGraphiteCache/data_3
-  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/data_0
-  - tmp/pdfs/chrome-profile/Default/Network/NetworkDataMigrated
-  - tmp/pdfs/chrome-profile-qa/Default/Network/Reporting and NEL
-  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/Database/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Code Cache/wasm/index
-  - tmp/pdfs/chrome-profile/Default/Service Worker/ScriptCache/index-dir/the-real-index
-  - tmp/pdfs/chrome-profile/Default/Web Data
-  - tmp/pdfs/chrome-profile-qa/Default/Affiliation Database-journal
-  - tmp/pdfs/chrome-profile-qa/Default/History-journal
-  - tmp/pdfs/chrome-pdf-qa/Default/Cache/Cache_Data/data_2
-  - tmp/pdfs/chrome-profile/GrShaderCache/index
-  - tmp/pdfs/chrome-profile-qa/CrashpadMetrics-active.pma
-  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SignalStorageConfigDB/LOCK
-  - tmp/pdfs/chrome-profile/Default/Extension Scripts/LOCK
-  - tmp/add-self-service-account-access-pr.md
-  - tmp/pdfs/chrome-profile/Default/commerce_subscription_db/LOG
-  - tmp/pdfs/chrome-profile/Default/Session Storage/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/Default/PersistentOriginTrials/LOG
-  - .agents/skills/spectra-audit/SKILL.md
-  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/MANIFEST-000001
-  - tmp/pdfs/chrome-profile-qa/Default/Local Storage/leveldb/MANIFEST-000001
-  - tmp/pdfs/chrome-pdf-qa/Default/DawnWebGPUCache/data_1
-  - tmp/pdfs/hakobi-deployment-qa.png
-  - tmp/pdfs/chrome-profile/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db-wal
-  - tmp/pdfs/chrome-pdf-qa/Crashpad/settings.dat
-  - tmp/pdfs/chrome-profile-qa/Default/Network/Device Bound Sessions-journal
-  - tmp/pdfs/chrome-profile-qa/GrShaderCache/data_0
-  - tmp/pdfs/chrome-profile/Default/Code Cache/wasm/index-dir/the-real-index
-  - tmp/pdfs/chrome-profile/Default/Sync Data/LevelDB/CURRENT
-  - tmp/pdfs/chrome-pdf-qa/segmentation_platform/ukm_db
-  - tmp/pdfs/chrome-profile-qa/Default/Network/Trust Tokens
-  - tmp/pdfs/chrome-profile-qa/Default/Account Web Data-journal
-  - tmp/pdfs/chrome-profile-qa/Default/chrome_cart_db/LOCK
-  - tmp/pdfs/chrome-profile-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db-wal
-  - tmp/pdfs/chrome-profile/Default/GPUCache/index
-  - tmp/pdfs/chrome-pdf-qa/Default/ServerCertificate
-  - tmp/pdfs/chrome-profile/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db
-  - tmp/pdfs/chrome-profile-qa/Default/Shared Dictionary/db
-  - tmp/pdfs/chrome-profile/Default/LOG
-  - tmp/pdfs/chrome-pdf-qa/Default/Site Characteristics Database/CURRENT
-tests:
-  - src/components/__tests__/AppSidebar.spec.js
-  - src/views/__tests__/ResetPassword.spec.js
-  - src/views/__tests__/Register.spec.js
-  - server/src/migration.test.ts
-  - src/stores/__tests__/auth.spec.js
-  - src/views/__tests__/VerifyEmail.spec.js
-  - src/views/__tests__/Login.spec.js
-  - src/domain/__tests__/accountValidation.spec.js
-  - src/lib/__tests__/supabase.spec.js
-  - src/__tests__/App.spec.js
-  - src/router/__tests__/authGuard.spec.js
-  - src/views/__tests__/ForgotPassword.spec.js
--->
-
----
-### Requirement: Runtime configuration separates public and secret values
-Deployment documentation MUST identify the frontend Supabase URL and anonymous publishable key as client configuration, and MUST keep database connection strings, passwords, and privileged keys out of frontend bundles and version control.
-
-#### Scenario: Frontend is built for deployment
-- **WHEN** the production frontend build is generated
-- **THEN** it SHALL contain only the configured Supabase URL, anonymous publishable key, and API base URL required by browser code
-
-#### Scenario: Server starts with production configuration
-- **WHEN** the backend starts with the Supabase URL, database connection string, CORS origin, and port supplied by its deployment environment
-- **THEN** it SHALL validate required configuration without logging secret values
-
----
-### Requirement: Deployment verification proves availability and owner isolation
-A documented verification command MUST check backend health, authenticated order CRUD, and cross-user isolation against the selected environment. Verification data MUST use dedicated test users and MUST be removed when the verification completes successfully or fails after creation.
-
-#### Scenario: Deployment passes verification
-- **WHEN** the target API and Supabase project are correctly configured for two test users
-- **THEN** verification SHALL confirm health returns HTTP 200, user A can create/read/update/delete its order, and user B receives HTTP 404 for user A's order
-
-#### Scenario: Verification detects an unsafe deployment
-- **WHEN** user B can read, update, or delete user A's verification order
-- **THEN** verification SHALL exit unsuccessfully, identify the failed isolation check without printing tokens, and attempt cleanup as user A
-
----
-### Requirement: Deployment instructions include rollback boundaries
-The deployment guide MUST identify the exact target before migration, require a backup for destructive future migrations, and describe rollback as a reviewed forward migration rather than a remote database reset.
-
-#### Scenario: Operator prepares a production migration
-- **WHEN** an operator follows the deployment guide for a production project
-- **THEN** the operator SHALL verify the project reference and migration plan before push and SHALL NOT run a database reset against the remote project
-
----
-### Requirement: Supabase Auth requires verified email and baseline password strength
-The target Supabase project MUST enable public email-password signup, Confirm Email, a minimum password length of 8, and a password character policy requiring letters and digits. Existing confirmed users SHALL retain access after the settings change.
-
-#### Scenario: New production user signs up
-- **WHEN** the deployed frontend submits a new valid email-password signup
-- **THEN** Supabase SHALL create an unconfirmed user, send a confirmation email, and SHALL NOT issue a protected-use session before confirmation
+| Input | Expected result | Normalized value |
+| --- | --- | --- |
+| `Hakobi_01` | accepted | `hakobi_01` |
+| `箱子君` | accepted | `箱子君` |
+| `ab` | rejected: fewer than 3 characters | — |
+| 21 valid characters | rejected: more than 20 characters | — |
+| `hako bi` | rejected: whitespace | — |
+| `hako-bi` | rejected: unsupported symbol | — |
 
 
 <!-- @trace
@@ -1130,16 +559,16 @@ tests:
 -->
 
 ---
-### Requirement: Authentication redirects are explicitly allowlisted
-Deployment configuration MUST set the production Site URL and MUST allowlist the exact local-development and production callback URLs used for email confirmation and password recovery. Email templates SHALL direct recipients to the configured callback destination rather than an uncontrolled URL.
+### Requirement: Member usernames are unique under normalized comparison
+The database MUST enforce a unique constraint on the normalized username. An availability query SHALL return only whether a valid normalized username is available. Preflight availability checks MUST NOT replace the database constraint as the final decision during concurrent registrations.
 
-#### Scenario: Production confirmation link is opened
-- **WHEN** a recipient clicks a production confirmation email link
-- **THEN** Supabase SHALL redirect only to the allowlisted Hakobi verification callback
+#### Scenario: Existing username differs only by ASCII case
+- **WHEN** profile `Hakobi` already exists and a visitor checks or submits `hakobi`
+- **THEN** the system SHALL treat the normalized value as occupied and display `此名稱已被使用`
 
-#### Scenario: Unlisted callback is requested
-- **WHEN** a signup or recovery request supplies a redirect URL outside the allowlist
-- **THEN** Supabase SHALL reject or replace the destination according to the configured Site URL and SHALL NOT redirect to the unlisted origin
+#### Scenario: Concurrent visitors request the same username
+- **WHEN** two valid signup transactions concurrently request the same normalized username
+- **THEN** exactly one profile SHALL be created and the rejected flow SHALL display `此名稱已被使用` after confirming availability is no longer true
 
 
 <!-- @trace
@@ -1676,16 +1105,570 @@ tests:
 -->
 
 ---
-### Requirement: Production authentication email uses configured SMTP
-Production deployment documentation MUST require a custom SMTP provider and MUST identify sender identity, confirmation and recovery templates, rate limits, and a delivery verification procedure. Supabase's best-effort default sender SHALL be limited to development and manual testing.
+### Requirement: Every email-password member has one owned profile
+A successful Auth user creation MUST atomically create exactly one member profile keyed by the Auth user UUID using validated username metadata. Profile rows MUST be protected by Row Level Security so an authenticated member can read only their own full profile. Deleting the Auth user MUST cascade to its profile.
 
-#### Scenario: Production email delivery is verified
-- **WHEN** an operator completes deployment verification
-- **THEN** one dedicated test account SHALL receive a confirmation email and a recovery email through the configured SMTP sender, both links SHALL return to the production Hakobi origin, and the test account SHALL be removed after verification
+#### Scenario: Auth user creation succeeds
+- **WHEN** Supabase creates an email-password user with valid unused username metadata
+- **THEN** the database trigger SHALL create one profile with the same user UUID, preserved display username, and normalized unique username
 
-#### Scenario: SMTP delivery fails
-- **WHEN** the provider rejects or does not deliver a test authentication email
-- **THEN** deployment verification SHALL fail without exposing SMTP credentials or authentication tokens
+#### Scenario: Username metadata is invalid
+- **WHEN** Auth user creation supplies missing or invalid username metadata
+- **THEN** the database SHALL reject the user creation transaction and SHALL NOT leave an Auth user without a profile
+
+#### Scenario: Member reads another profile directly
+- **WHEN** authenticated member A queries the full profile row owned by member B
+- **THEN** Row Level Security SHALL return no member B profile data
+
+
+<!-- @trace
+source: add-self-service-account-access
+updated: 2026-08-11
+code:
+  - tmp/pdfs/chrome-profile/Default/Web Data-journal
+  - tmp/pdfs/chrome-profile-qa/Default/Sessions/Session_13430687835319079
+  - .agents/skills/spectra-archive/SKILL.md
+  - tmp/pdfs/chrome-profile-qa/Default/Sync Data/LevelDB/LOCK
+  - tmp/pdfs/chrome-profile/Crashpad/settings.dat
+  - tmp/pdfs/chrome-profile/Default/Safe Browsing Network/NetworkDataMigrated
+  - tmp/pdfs/chrome-profile/Default/Cache/No_Vary_Search/snapshot.baf
+  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SegmentInfoDB/LOCK
+  - src/views/ResetPassword.vue
+  - tmp/pdfs/chrome-pdf-qa/Default/Site Characteristics Database/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension State/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Login Data
+  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/CURRENT
+  - tmp/pdfs/chrome-profile-qa/Default/Code Cache/js/index-dir/the-real-index
+  - tmp/pdfs/chrome-profile-qa/GrShaderCache/data_3
+  - tmp/pdfs/chrome-profile/Default/Code Cache/js/ba678a2fbd8c358c_0
+  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SignalDB/LOG
+  - tmp/pdfs/chrome-profile/Default/Session Storage/MANIFEST-000001
+  - tmp/pdfs/chrome-profile-qa/Default/PersistentOriginTrials/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Login Data-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension State/MANIFEST-000001
+  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/Database/LOG
+  - tmp/pdfs/chrome-profile/Default/Extension Scripts/LOG
+  - src/views/ForgotPassword.vue
+  - tmp/pdfs/chrome-profile/Default/GPUCache/data_1
+  - tmp/pdfs/chrome-profile/Default/Network/Network Persistent State
+  - tmp/pdfs/chrome-pdf-qa/Default/Account Web Data
+  - tmp/pdfs/chrome-profile-qa/Default/discount_infos_db/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/CURRENT
+  - tmp/pdfs/chrome-profile/Default/Network/Device Bound Sessions-journal
+  - tmp/pdfs/chrome-profile/Default/BookmarkMergedSurfaceOrdering
+  - tmp/pdfs/chrome-profile/Default/Sync Data/LevelDB/MANIFEST-000001
+  - tmp/pdfs/chrome-pdf-qa/Default/Affiliation Database-journal
+  - tmp/pdfs/chrome-profile-qa/Default/Extension State/CURRENT
+  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SegmentInfoDB/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/WebStorage/QuotaManager-journal
+  - tmp/pdfs/chrome-profile/Default/Extension Scripts/MANIFEST-000001
+  - tmp/pdfs/chrome-pdf-qa/Default/Site Characteristics Database/LOCK
+  - tmp/pdfs/chrome-profile/Default/Local Storage/leveldb/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/Default/Cache/No_Vary_Search/journal.baj
+  - tmp/pdfs/chrome-profile-qa/Default/Preferences
+  - tmp/pdfs/chrome-profile/Default/Local Storage/leveldb/LOCK
+  - tmp/pdfs/chrome-profile/Default/Network/Reporting and NEL
+  - tmp/pdfs/chrome-profile/en-US-10-1.bdic
+  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/metadata/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SignalDB/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SignalStorageConfigDB/LOG
+  - tmp/pdfs/chrome-pdf-qa/Variations
+  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/metadata/LOCK
+  - tmp/pdfs/chrome-profile/Default/engine_allowlist.bf
+  - tmp/pdfs/chrome-profile/ShaderCache/data_1
+  - tmp/pdfs/chrome-profile/Default/Favicons
+  - tmp/pdfs/chrome-profile-qa/Default/Login Data For Account
+  - tmp/pdfs/chrome-profile/Default/DawnWebGPUCache/data_3
+  - src/views/Register.vue
+  - tmp/pdfs/chrome-profile/Last Version
+  - tmp/pdfs/chrome-profile/Default/Extension State/LOG
+  - tmp/pdfs/chrome-profile/Default/Sync Data/LevelDB/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/trusted_vault.pb
+  - src/lib/supabase.js
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension Scripts/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/data_3
+  - tmp/pdfs/chrome-profile/Default/Extension State/LOCK
+  - tmp/pdfs/chrome-profile/Default/ServerCertificate
+  - tmp/pdfs/chrome-pdf-qa/Default/Affiliation Database
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension Rules/LOCK
+  - tmp/pdfs/chrome-profile/Default/Session Storage/LOG
+  - tmp/pdfs/chrome-profile/Default/Site Characteristics Database/MANIFEST-000001
+  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/ScriptCache/index-dir/the-real-index
+  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/ScriptCache/4cb013792b196a35_1
+  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/metadata/MANIFEST-000001
+  - tmp/pdfs/chrome-profile/Default/GPUCache/data_0
+  - tmp/pdfs/chrome-profile-qa/Default/DawnWebGPUCache/data_2
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension Scripts/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/Sync Data/LevelDB/CURRENT
+  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SegmentInfoDB/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Site Characteristics Database/LOG
+  - tmp/pdfs/chrome-pdf-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db-wal
+  - tmp/pdfs/chrome-profile-qa/Crashpad/metadata
+  - tmp/pdfs/chrome-pdf-qa/Default/DawnGraphiteCache/index
+  - tmp/pdfs/chrome-profile/Default/Local Storage/leveldb/MANIFEST-000001
+  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SignalStorageConfigDB/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SignalStorageConfigDB/LOCK
+  - tmp/pdfs/chrome-profile/Default/shared_proto_db/LOCK
+  - tmp/pdfs/chrome-profile/Variations
+  - tmp/pdfs/chrome-profile-qa/Default/LOCK
+  - supabase/migrations/20260811000000_create_member_profiles.sql
+  - tmp/pdfs/chrome-profile-qa/Default/Affiliation Database
+  - tmp/pdfs/chrome-profile/Default/chrome_cart_db/LOG
+  - tmp/pdfs/chrome-profile/Default/shared_proto_db/metadata/MANIFEST-000001
+  - tmp/pdfs/chrome-profile-qa/Default/Code Cache/wasm/index-dir/the-real-index
+  - tmp/pdfs/chrome-profile/Default/Login Data-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/DawnWebGPUCache/data_3
+  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/ScriptCache/2cc80dabc69f58b6_0
+  - tmp/pdfs/chrome-profile/Default/Login Data
+  - tmp/pdfs/chrome-profile/Default/ClientCertificates/LOCK
+  - tmp/pdfs/chrome-profile/Default/Sync Data/LevelDB/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/discounts_db/LOCK
+  - tmp/pdfs/chrome-pdf-qa/Default/Top Sites-journal
+  - tmp/pdfs/chrome-pdf-qa/ShaderCache/data_2
+  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/Database/LOCK
+  - tmp/pdfs/chrome-profile-qa/Variations
+  - tmp/pdfs/chrome-profile/Default/discount_infos_db/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Cache/Cache_Data/index
+  - tmp/pdfs/chrome-pdf-qa/Default/discounts_db/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Preferences
+  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/metadata/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/GPUCache/data_2
+  - tmp/pdfs/chrome-profile/Default/Sessions/Tabs_13430687822256285
+  - tmp/pdfs/chrome-profile/Default/WebStorage/QuotaManager
+  - tmp/pdfs/chrome-profile/VariationsSafeSeedV2
+  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/ScriptCache/index
+  - src/domain/accountValidation.js
+  - tmp/pdfs/chrome-profile-qa/Default/declarative_performance_observer.db-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/Cache/Cache_Data/data_1
+  - tmp/pdfs/chrome-profile-qa/Default/Sessions/Tabs_13430687835325049
+  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/metadata/LOG
+  - README.md
+  - tmp/pdfs/chrome-profile/Crashpad/metadata
+  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SignalDB/LOCK
+  - tmp/pdfs/chrome-profile/Default/discount_infos_db/LOCK
+  - tmp/pdfs/chrome-profile/GrShaderCache/data_0
+  - tmp/pdfs/chrome-profile-qa/Default/Site Characteristics Database/CURRENT
+  - tmp/pdfs/chrome-profile-qa/Default/Extension State/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/engine_allowlist.bf
+  - tmp/pdfs/chrome-profile/Default/commerce_subscription_db/LOCK
+  - tmp/pdfs/chrome-pdf-qa/GrShaderCache/data_2
+  - tmp/pdfs/chrome-pdf-qa/Default/Network/Cookies-journal
+  - tmp/pdfs/chrome-profile-qa/Default/chrome_cart_db/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Web Data-journal
+  - .agents/skills/spectra-commit/SKILL.md
+  - tmp/pdfs/chrome-profile-qa/Default/ServerCertificate
+  - tmp/pdfs/chrome-profile/Default/Service Worker/Database/MANIFEST-000001
+  - tmp/pdfs/chrome-pdf-qa/Default/Code Cache/js/index-dir/the-real-index
+  - src/components/AppSidebar.vue
+  - tmp/pdfs/chrome-pdf-qa/Default/commerce_subscription_db/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/metadata/MANIFEST-000001
+  - tmp/pdfs/chrome-profile/Default/Code Cache/js/index-dir/the-real-index
+  - tmp/pdfs/chrome-pdf-qa/Default/GPUCache/data_2
+  - .agents/skills/spectra-ingest/SKILL.md
+  - tmp/pdfs/chrome-profile/Default/Preferences
+  - .agents/skills/spectra-propose/SKILL.md
+  - .agents/skills/spectra-ask/SKILL.md
+  - tmp/pdfs/chrome-pdf-qa/CrashpadMetrics-active.pma
+  - tmp/pdfs/chrome-pdf-qa/Last Version
+  - tmp/pdfs/chrome-profile-qa/Default/Extension Scripts/CURRENT
+  - tmp/pdfs/chrome-profile-qa/Default/Safe Browsing Network/NetworkDataMigrated
+  - tmp/pdfs/chrome-profile-qa/Default/Top Sites-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/History
+  - tmp/pdfs/chrome-pdf-qa/Default/BookmarkMergedSurfaceOrdering
+  - tmp/pdfs/chrome-profile/Default/DawnWebGPUCache/data_2
+  - tmp/pdfs/chrome-profile-qa/Default/Network/Cookies
+  - tmp/pdfs/chrome-pdf-qa/Default/Code Cache/js/ba678a2fbd8c358c_0
+  - tmp/pdfs/chrome-pdf-qa/Default/declarative_performance_observer.db
+  - tmp/pdfs/chrome-pdf-qa/Default/Network/Trust Tokens-journal
+  - tmp/pdfs/chrome-profile-qa/Last Version
+  - tmp/pdfs/chrome-profile-qa/Default/Web Data-journal
+  - tmp/pdfs/chrome-profile/Default/Account Web Data
+  - tmp/pdfs/chrome-profile-qa/ShaderCache/index
+  - tmp/pdfs/chrome-pdf-qa/Default/Cache/Cache_Data/data_3
+  - tmp/pdfs/chrome-pdf-qa/Default/ClientCertificates/LOG
+  - src/App.vue
+  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/Database/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/Default/Sessions/Tabs_13430687870496258
+  - tmp/pdfs/chrome-profile-qa/Default/BookmarkMergedSurfaceOrdering
+  - tmp/pdfs/chrome-profile-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db
+  - tmp/pdfs/chrome-pdf-qa/extensions_crx_cache/metadata.json
+  - tmp/pdfs/chrome-profile/Default/shared_proto_db/metadata/LOCK
+  - tmp/pdfs/chrome-pdf-qa/Default/Network/NetworkDataMigrated
+  - tmp/pdfs/chrome-pdf-qa/Default/Code Cache/wasm/index-dir/the-real-index
+  - tmp/pdfs/chrome-profile-qa/Default/parcel_tracking_db/LOCK
+  - tmp/pdfs/chrome-profile/Default/Login Data For Account
+  - tmp/pdfs/chrome-pdf-qa/Default/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SignalDB/LOG
+  - tmp/pdfs/chrome-profile/Default/shared_proto_db/metadata/LOG
+  - tmp/pdfs/chrome-profile/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.journal
+  - tmp/pdfs/chrome-pdf-qa/Crashpad/metadata
+  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SignalDB/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Favicons
+  - tmp/pdfs/chrome-profile-qa/Default/GPUCache/data_1
+  - tmp/pdfs/chrome-profile/Default/Extension Rules/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Account Web Data
+  - tmp/pdfs/chrome-pdf-qa/Default/Network/Trust Tokens
+  - tmp/pdfs/chrome-pdf-qa/Default/GPUCache/data_3
+  - tmp/pdfs/hakobi-deployment-troubleshooting.html
+  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/data_1
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension State/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/GrShaderCache/data_3
+  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SignalDB/LOCK
+  - tmp/pdfs/chrome-profile-qa/extensions_crx_cache/metadata.json
+  - tmp/pdfs/chrome-pdf-qa/Default/DawnGraphiteCache/data_0
+  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/data_1
+  - tmp/pdfs/chrome-profile-qa/Default/Sync Data/LevelDB/MANIFEST-000001
+  - src/views/Login.vue
+  - tmp/pdfs/chrome-profile-qa/Default/History
+  - tmp/pdfs/chrome-profile/VariationsSeedV2
+  - tmp/pdfs/chrome-profile-qa/Default/Session Storage/LOCK
+  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/data_3
+  - tmp/pdfs/chrome-profile/Default/DawnGraphiteCache/index
+  - tmp/pdfs/chrome-profile/Default/README
+  - tmp/pdfs/chrome-pdf-qa/Default/declarative_performance_observer.db-journal
+  - tmp/pdfs/chrome-profile/GrShaderCache/data_2
+  - tmp/pdfs/chrome-profile-qa/GrShaderCache/data_1
+  - tmp/pdfs/chrome-pdf-qa/Default/README
+  - tmp/pdfs/chrome-profile-qa/Default/DawnWebGPUCache/data_0
+  - tmp/pdfs/chrome-profile/Default/Service Worker/Database/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/Default/Sync Data/LevelDB/CURRENT
+  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/data_2
+  - tmp/pdfs/chrome-profile-qa/Default/discounts_db/LOG
+  - tmp/pdfs/chrome-profile/Default/parcel_tracking_db/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/Site Characteristics Database/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/DawnGraphiteCache/data_0
+  - tmp/pdfs/chrome-profile-qa/Default/GPUCache/data_3
+  - tmp/pdfs/chrome-pdf-qa/Default/chrome_cart_db/LOG
+  - tmp/pdfs/chrome-profile/Default/Extension Rules/CURRENT
+  - tmp/pdfs/chrome-profile/Default/Network/Trust Tokens
+  - tmp/pdfs/chrome-pdf-qa/Default/Network/Device Bound Sessions-journal
+  - tmp/pdfs/chrome-profile/Default/History-journal
+  - tmp/pdfs/chrome-profile/Default/Network/Reporting and NEL-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension Rules/MANIFEST-000001
+  - tmp/pdfs/chrome-pdf-qa/Default/Sync Data/LevelDB/LOCK
+  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/Database/MANIFEST-000001
+  - tmp/pdfs/chrome-pdf-qa/Default/Network/Network Persistent State
+  - tmp/pdfs/chrome-pdf-qa/Default/Code Cache/js/index
+  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SignalStorageConfigDB/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Network/TransportSecurity
+  - tmp/pdfs/chrome-profile/GrShaderCache/data_1
+  - tmp/pdfs/chrome-pdf-qa/Default/WebStorage/QuotaManager
+  - tmp/pdfs/chrome-profile/Default/Extension State/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/Default/DawnWebGPUCache/data_2
+  - tmp/pdfs/chrome-profile-qa/Default/Local Storage/leveldb/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension Scripts/MANIFEST-000001
+  - tmp/pdfs/chrome-profile-qa/Default/Segmentation Platform/SegmentInfoDB/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/Extension Rules/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/Session Storage/LOG
+  - tmp/pdfs/chrome-profile/Default/Sessions/Session_13430687822250612
+  - tmp/pdfs/chrome-pdf-qa/Default/Shared Dictionary/cache/index-dir/the-real-index
+  - tmp/pdfs/chrome-profile/Default/DawnGraphiteCache/data_1
+  - tmp/pdfs/chrome-profile-qa/Default/DawnWebGPUCache/data_3
+  - tmp/pdfs/chrome-profile-qa/Default/Extension State/LOCK
+  - tmp/pdfs/chrome-profile-qa/ShaderCache/data_1
+  - tmp/pdfs/chrome-profile/ShaderCache/data_2
+  - tmp/pdfs/chrome-pdf-qa/Default/Top Sites
+  - .agents/skills/spectra-discuss/SKILL.md
+  - tmp/pdfs/chrome-profile/Default/shared_proto_db/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/Default/Sync Data/LevelDB/MANIFEST-000001
+  - tmp/pdfs/chrome-pdf-qa/ShaderCache/data_1
+  - tmp/pdfs/chrome-profile-qa/Default/GPUCache/data_0
+  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/LOCK
+  - tmp/pdfs/chrome-profile/Default/DawnGraphiteCache/data_3
+  - tmp/pdfs/chrome-profile-qa/Default/DawnWebGPUCache/data_1
+  - tmp/pdfs/chrome-pdf-qa/Default/Login Data For Account-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SegmentInfoDB/LOG
+  - tmp/pdfs/chrome-profile/CrashpadMetrics-active.pma
+  - tmp/pdfs/chrome-pdf-qa/GrShaderCache/data_1
+  - tmp/pdfs/chrome-pdf-qa/Default/Safe Browsing Network/NetworkDataMigrated
+  - tmp/pdfs/chrome-profile-qa/Default/Web Data
+  - tmp/pdfs/chrome-profile/Default/Service Worker/ScriptCache/2cc80dabc69f58b6_0
+  - tmp/pdfs/chrome-profile/segmentation_platform/ukm_db
+  - tmp/pdfs/chrome-profile/Default/DawnWebGPUCache/data_0
+  - tmp/pdfs/chrome-profile-qa/GrShaderCache/index
+  - src/stores/auth.js
+  - tmp/pdfs/chrome-profile-qa/GrShaderCache/data_2
+  - tmp/pdfs/chrome-profile/Default/Network/Device Bound Sessions
+  - tmp/pdfs/chrome-profile/Default/PersistentOriginTrials/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/DawnWebGPUCache/index
+  - tmp/pdfs/chrome-profile/Default/Network/Cookies-journal
+  - tmp/pdfs/chrome-profile/Default/Service Worker/Database/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/Extension Scripts/LOG
+  - tmp/pdfs/chrome-profile/Default/Service Worker/ScriptCache/4cb013792b196a35_1
+  - tmp/pdfs/chrome-profile/Default/Shared Dictionary/db
+  - tmp/pdfs/chrome-profile/Default/Site Characteristics Database/CURRENT
+  - tmp/pdfs/chrome-profile/extensions_crx_cache/metadata.json
+  - tmp/pdfs/chrome-profile-qa/Default/Favicons-journal
+  - tmp/pdfs/chrome-profile/Default/trusted_vault.pb
+  - tmp/pdfs/chrome-pdf-qa/Default/WebStorage/QuotaManager-journal
+  - tmp/pdfs/chrome-profile-qa/Default/declarative_performance_observer.db
+  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/Database/MANIFEST-000001
+  - tmp/pdfs/chrome-profile/Default/ServerCertificate-journal
+  - tmp/pdfs/chrome-profile/Default/Service Worker/ScriptCache/index
+  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/LOG
+  - .agents/skills/spectra-debug/SKILL.md
+  - tmp/pdfs/chrome-profile-qa/Default/README
+  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/Database/CURRENT
+  - tmp/pdfs/chrome-profile-qa/Default/Sync Data/LevelDB/LOG
+  - tmp/pdfs/chrome-profile/Default/parcel_tracking_db/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Network/Cookies-journal
+  - tmp/pdfs/chrome-profile/Default/chrome_cart_db/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/Login Data
+  - tmp/pdfs/chrome-profile/Default/declarative_performance_observer.db-journal
+  - tmp/pdfs/chrome-profile-qa/Default/WebStorage/QuotaManager
+  - tmp/pdfs/chrome-pdf-qa/Default/Session Storage/LOCK
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension State/LOCK
+  - tmp/pdfs/chrome-profile/Local State
+  - tmp/pdfs/chrome-profile-qa/Default/Top Sites
+  - tmp/pdfs/chrome-profile-qa/Default/Extension Scripts/LOCK
+  - tmp/pdfs/chrome-profile/Default/Code Cache/wasm/index
+  - tmp/pdfs/chrome-profile/Default/Local Storage/leveldb/LOG
+  - tmp/pdfs/chrome-profile/Default/Extension Rules/MANIFEST-000001
+  - tmp/pdfs/chrome-profile/Default/Shared Dictionary/db-journal
+  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/index
+  - tmp/pdfs/chrome-pdf-qa/Default/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Local Storage/leveldb/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db
+  - tmp/pdfs/chrome-pdf-qa/ShaderCache/data_0
+  - tmp/pdfs/chrome-profile-qa/Default/Session Storage/CURRENT
+  - tmp/pdfs/chrome-profile/Default/GPUCache/data_3
+  - src/router/index.js
+  - tmp/pdfs/chrome-profile-qa/ShaderCache/data_0
+  - tmp/pdfs/chrome-pdf-qa/Default/DawnGraphiteCache/data_3
+  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/Database/LOCK
+  - tmp/pdfs/chrome-profile/Default/Login Data For Account-journal
+  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/MANIFEST-000001
+  - tmp/pdfs/chrome-profile/Default/Shared Dictionary/cache/index
+  - tmp/pdfs/chrome-pdf-qa/Default/Sessions/Session_13430687870490430
+  - tmp/pdfs/chrome-profile/ShaderCache/data_3
+  - tmp/pdfs/chrome-profile/Default/Session Storage/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/parcel_tracking_db/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/discount_infos_db/LOCK
+  - tmp/pdfs/chrome-profile/Default/declarative_performance_observer.db
+  - tmp/pdfs/chrome-profile/Default/DawnWebGPUCache/data_1
+  - tmp/pdfs/chrome-profile/Default/Top Sites-journal
+  - tmp/pdfs/chrome-profile-qa/Default/Site Characteristics Database/MANIFEST-000001
+  - output/pdf/Hakobi_Render部署與除錯紀錄.pdf
+  - docs/supabase-setup.md
+  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/index
+  - tmp/pdfs/chrome-pdf-qa/Default/PersistentOriginTrials/LOCK
+  - tmp/pdfs/chrome-pdf-qa/Default/History-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/DawnWebGPUCache/data_0
+  - tmp/pdfs/chrome-profile-qa/Default/Cache/No_Vary_Search/journal.baj
+  - tmp/pdfs/chrome-profile/Default/ClientCertificates/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Network/Reporting and NEL-journal
+  - tmp/pdfs/chrome-pdf-qa/GrShaderCache/data_0
+  - tmp/pdfs/chrome-pdf-qa/Default/GPUCache/index
+  - tmp/pdfs/chrome-profile-qa/Default/Extension Rules/MANIFEST-000001
+  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/LOG
+  - tmp/pdfs/chrome-profile/Default/Favicons-journal
+  - tmp/pdfs/chrome-profile-qa/Default/commerce_subscription_db/LOG
+  - tmp/pdfs/chrome-profile/Default/Affiliation Database-journal
+  - tmp/pdfs/chrome-profile/Default/DawnGraphiteCache/data_2
+  - tmp/pdfs/chrome-profile/Default/discounts_db/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Login Data For Account-journal
+  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/f_000001
+  - tmp/pdfs/chrome-profile/Default/Network/Trust Tokens-journal
+  - tmp/pdfs/chrome-pdf-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.journal
+  - tmp/pdfs/chrome-profile-qa/Default/ClientCertificates/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/Code Cache/js/index
+  - tmp/pdfs/chrome-profile-qa/Default/Shared Dictionary/db-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/Login Data-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension Rules/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/Default/DawnGraphiteCache/data_2
+  - tmp/pdfs/chrome-profile-qa/Default/Cache/No_Vary_Search/snapshot.baf
+  - src/views/VerifyEmail.vue
+  - tmp/pdfs/chrome-pdf-qa/Default/Local Storage/leveldb/CURRENT
+  - tmp/pdfs/chrome-profile-qa/Default/DawnGraphiteCache/data_2
+  - tmp/pdfs/chrome-profile/Default/Code Cache/js/index
+  - tmp/pdfs/chrome-profile/Default/Segmentation Platform/SignalStorageConfigDB/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/Shared Dictionary/cache/index-dir/the-real-index
+  - tmp/pdfs/chrome-profile/Default/Service Worker/ScriptCache/4cb013792b196a35_0
+  - supabase/.branches/_current_branch
+  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SegmentInfoDB/LOCK
+  - tmp/pdfs/chrome-pdf-qa/ShaderCache/index
+  - tmp/pdfs/chrome-profile/Default/Affiliation Database
+  - tmp/pdfs/chrome-profile/Default/Site Characteristics Database/LOG
+  - tmp/pdfs/chrome-profile/Default/shared_proto_db/LOG
+  - tmp/pdfs/chrome-profile/Default/DawnWebGPUCache/index
+  - tmp/pdfs/chrome-profile/Default/Cache/No_Vary_Search/journal.baj
+  - tmp/pdfs/chrome-profile-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.journal
+  - tmp/pdfs/chrome-pdf-qa/Default/GPUCache/data_0
+  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/metadata/CURRENT
+  - tmp/pdfs/chrome-profile/Default/History
+  - tmp/pdfs/chrome-pdf-qa/Default/Network/Device Bound Sessions
+  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/ScriptCache/index
+  - tmp/pdfs/chrome-pdf-qa/Default/DawnGraphiteCache/data_1
+  - .agents/skills/spectra-drift/SKILL.md
+  - tmp/pdfs/chrome-pdf-qa/GrShaderCache/index
+  - tmp/pdfs/chrome-pdf-qa/Default/Session Storage/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Local Storage/leveldb/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/LOCK
+  - tmp/pdfs/chrome-profile/Default/shared_proto_db/metadata/CURRENT
+  - tmp/pdfs/chrome-profile-qa/Default/Extension State/MANIFEST-000001
+  - tmp/pdfs/chrome-profile-qa/Default/Extension Rules/CURRENT
+  - tmp/pdfs/chrome-profile/Default/Top Sites
+  - tmp/pdfs/chrome-pdf-qa/Local State
+  - tmp/pdfs/chrome-pdf-qa/Default/Favicons-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/parcel_tracking_db/LOCK
+  - tmp/pdfs/chrome-pdf-qa/Default/engine_allowlist.bf
+  - tmp/pdfs/chrome-pdf-qa/Default/ClientCertificates/LOCK
+  - tmp/pdfs/chrome-profile/Default/Extension Rules/LOCK
+  - tmp/pdfs/chrome-pdf-qa/Default/Shared Dictionary/db-journal
+  - tmp/pdfs/chrome-profile-qa/Default/Network/Reporting and NEL-journal
+  - tmp/pdfs/chrome-profile/Default/Extension Scripts/CURRENT
+  - tmp/pdfs/chrome-profile/Default/Site Characteristics Database/LOCK
+  - .agents/skills/spectra-apply/SKILL.md
+  - tmp/pdfs/chrome-profile-qa/Default/PersistentOriginTrials/LOCK
+  - tmp/pdfs/chrome-pdf-qa/Default/Login Data For Account
+  - tmp/pdfs/chrome-pdf-qa/Default/Session Storage/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension Rules/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/ScriptCache/4cb013792b196a35_0
+  - tmp/pdfs/chrome-profile-qa/Default/Local Storage/leveldb/LOCK
+  - tmp/pdfs/chrome-pdf-qa/Default/DawnWebGPUCache/index
+  - tmp/pdfs/chrome-pdf-qa/Default/Site Characteristics Database/MANIFEST-000001
+  - tmp/pdfs/chrome-pdf-qa/Default/Account Web Data-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/Cache/Cache_Data/data_0
+  - tmp/pdfs/chrome-pdf-qa/Default/Sync Data/LevelDB/LOG
+  - tmp/pdfs/chrome-profile/ShaderCache/index
+  - tmp/pdfs/chrome-profile-qa/Default/DawnGraphiteCache/index
+  - tmp/pdfs/chrome-pdf-qa/Default/Secure Preferences
+  - tmp/pdfs/chrome-pdf-qa/Default/Shared Dictionary/cache/index
+  - tmp/pdfs/chrome-pdf-qa/ShaderCache/data_3
+  - tmp/pdfs/chrome-profile-qa/Default/LOG
+  - tmp/pdfs/chrome-profile/Default/Secure Preferences
+  - tmp/pdfs/chrome-profile-qa/ShaderCache/data_2
+  - tmp/pdfs/chrome-pdf-qa/Default/Network/Reporting and NEL
+  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/f_000001
+  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/data_2
+  - tmp/pdfs/chrome-profile-qa/Default/Service Worker/ScriptCache/index-dir/the-real-index
+  - tmp/pdfs/chrome-profile/Default/GPUCache/data_2
+  - tmp/pdfs/chrome-pdf-qa/Default/Cache/No_Vary_Search/snapshot.baf
+  - tmp/pdfs/chrome-pdf-qa/Default/Shared Dictionary/db
+  - tmp/pdfs/chrome-pdf-qa/Default/parcel_tracking_db/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Network/NetworkDataMigrated
+  - tmp/pdfs/chrome-profile/Default/discounts_db/LOCK
+  - tmp/pdfs/chrome-pdf-qa/Default/Local Storage/leveldb/MANIFEST-000001
+  - tmp/pdfs/chrome-profile-qa/Default/DawnGraphiteCache/data_1
+  - tmp/pdfs/chrome-profile/Default/Service Worker/Database/LOG
+  - tmp/pdfs/chrome-profile/GrShaderCache/data_3
+  - tmp/pdfs/chrome-profile-qa/Default/Network/Network Persistent State
+  - tmp/pdfs/chrome-pdf-qa/Default/GPUCache/data_1
+  - tmp/pdfs/chrome-profile-qa/Default/Session Storage/MANIFEST-000001
+  - tmp/pdfs/chrome-profile-qa/Default/discounts_db/LOCK
+  - tmp/pdfs/chrome-profile-qa/Default/Favicons
+  - tmp/pdfs/chrome-profile-qa/Default/GPUCache/index
+  - tmp/pdfs/chrome-profile-qa/Default/ServerCertificate-journal
+  - tmp/pdfs/chrome-profile-qa/Default/Code Cache/wasm/index
+  - tmp/pdfs/chrome-profile-qa/segmentation_platform/ukm_db
+  - tmp/pdfs/chrome-profile-qa/Crashpad/settings.dat
+  - tmp/pdfs/chrome-pdf-qa/Default/Extension Scripts/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/Default/chrome_cart_db/LOCK
+  - tmp/pdfs/chrome-pdf-qa/Default/Session Storage/MANIFEST-000001
+  - tmp/pdfs/chrome-profile/Default/LOCK
+  - tmp/pdfs/chrome-profile/Default/Account Web Data-journal
+  - tmp/pdfs/chrome-profile-qa/Default/Network/Trust Tokens-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/Local Storage/leveldb/LOG
+  - tmp/pdfs/chrome-profile/Default/Shared Dictionary/cache/index-dir/the-real-index
+  - tmp/pdfs/chrome-profile/Default/DawnGraphiteCache/data_0
+  - tmp/pdfs/chrome-profile-qa/ShaderCache/data_3
+  - tmp/pdfs/chrome-pdf-qa/Default/discount_infos_db/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/discount_infos_db/LOCK
+  - tmp/pdfs/chrome-profile/Default/PersistentOriginTrials/LOG
+  - tmp/pdfs/chrome-profile/Default/shared_proto_db/MANIFEST-000001
+  - tmp/pdfs/chrome-pdf-qa/Default/ServerCertificate-journal
+  - tmp/pdfs/chrome-profile-qa/Local State
+  - tmp/pdfs/chrome-profile-qa/Default/commerce_subscription_db/LOCK
+  - tmp/pdfs/chrome-profile/ShaderCache/data_0
+  - tmp/pdfs/chrome-profile-qa/Default/Shared Dictionary/cache/index
+  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/ScriptCache/4cb013792b196a35_0
+  - tmp/pdfs/chrome-profile-qa/Default/Extension Rules/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/Extension Scripts/MANIFEST-000001
+  - tmp/pdfs/chrome-profile/Default/Extension State/MANIFEST-000001
+  - tmp/pdfs/chrome-profile-qa/Default/Secure Preferences
+  - tmp/pdfs/chrome-pdf-qa/Default/Web Data
+  - tmp/pdfs/chrome-profile-qa/Default/Code Cache/js/ba678a2fbd8c358c_0
+  - tmp/pdfs/chrome-profile-qa/Default/shared_proto_db/metadata/CURRENT
+  - tmp/pdfs/pdf-page-1.png
+  - tmp/pdfs/chrome-profile-qa/Default/Cache/Cache_Data/data_0
+  - tmp/pdfs/chrome-profile-qa/Default/Network/Device Bound Sessions
+  - tmp/pdfs/chrome-profile/Default/WebStorage/QuotaManager-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/Network/Cookies
+  - tmp/pdfs/chrome-profile/Default/Network/Cookies
+  - tmp/pdfs/chrome-pdf-qa/Default/commerce_subscription_db/LOCK
+  - tmp/pdfs/chrome-profile/Default/Network/TransportSecurity
+  - tmp/pdfs/chrome-profile-qa/Default/ClientCertificates/LOG
+  - tmp/pdfs/chrome-profile-qa/Default/DawnGraphiteCache/data_3
+  - tmp/pdfs/chrome-profile/Default/Cache/Cache_Data/data_0
+  - tmp/pdfs/chrome-profile/Default/Network/NetworkDataMigrated
+  - tmp/pdfs/chrome-profile-qa/Default/Network/Reporting and NEL
+  - tmp/pdfs/chrome-pdf-qa/Default/Service Worker/Database/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Code Cache/wasm/index
+  - tmp/pdfs/chrome-profile/Default/Service Worker/ScriptCache/index-dir/the-real-index
+  - tmp/pdfs/chrome-profile/Default/Web Data
+  - tmp/pdfs/chrome-profile-qa/Default/Affiliation Database-journal
+  - tmp/pdfs/chrome-profile-qa/Default/History-journal
+  - tmp/pdfs/chrome-pdf-qa/Default/Cache/Cache_Data/data_2
+  - tmp/pdfs/chrome-profile/GrShaderCache/index
+  - tmp/pdfs/chrome-profile-qa/CrashpadMetrics-active.pma
+  - tmp/pdfs/chrome-pdf-qa/Default/Segmentation Platform/SignalStorageConfigDB/LOCK
+  - tmp/pdfs/chrome-profile/Default/Extension Scripts/LOCK
+  - tmp/add-self-service-account-access-pr.md
+  - tmp/pdfs/chrome-profile/Default/commerce_subscription_db/LOG
+  - tmp/pdfs/chrome-profile/Default/Session Storage/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/Default/PersistentOriginTrials/LOG
+  - .agents/skills/spectra-audit/SKILL.md
+  - tmp/pdfs/chrome-pdf-qa/Default/shared_proto_db/MANIFEST-000001
+  - tmp/pdfs/chrome-profile-qa/Default/Local Storage/leveldb/MANIFEST-000001
+  - tmp/pdfs/chrome-pdf-qa/Default/DawnWebGPUCache/data_1
+  - tmp/pdfs/hakobi-deployment-qa.png
+  - tmp/pdfs/chrome-profile/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db-wal
+  - tmp/pdfs/chrome-pdf-qa/Crashpad/settings.dat
+  - tmp/pdfs/chrome-profile-qa/Default/Network/Device Bound Sessions-journal
+  - tmp/pdfs/chrome-profile-qa/GrShaderCache/data_0
+  - tmp/pdfs/chrome-profile/Default/Code Cache/wasm/index-dir/the-real-index
+  - tmp/pdfs/chrome-profile/Default/Sync Data/LevelDB/CURRENT
+  - tmp/pdfs/chrome-pdf-qa/segmentation_platform/ukm_db
+  - tmp/pdfs/chrome-profile-qa/Default/Network/Trust Tokens
+  - tmp/pdfs/chrome-profile-qa/Default/Account Web Data-journal
+  - tmp/pdfs/chrome-profile-qa/Default/chrome_cart_db/LOCK
+  - tmp/pdfs/chrome-profile-qa/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db-wal
+  - tmp/pdfs/chrome-profile/Default/GPUCache/index
+  - tmp/pdfs/chrome-pdf-qa/Default/ServerCertificate
+  - tmp/pdfs/chrome-profile/GPUPersistentCache/DawnGraphiteCache/P27VQJWCZTEA4KHQSE2IQBIIQMS5IZPD/cache.db
+  - tmp/pdfs/chrome-profile-qa/Default/Shared Dictionary/db
+  - tmp/pdfs/chrome-profile/Default/LOG
+  - tmp/pdfs/chrome-pdf-qa/Default/Site Characteristics Database/CURRENT
+tests:
+  - src/components/__tests__/AppSidebar.spec.js
+  - src/views/__tests__/ResetPassword.spec.js
+  - src/views/__tests__/Register.spec.js
+  - server/src/migration.test.ts
+  - src/stores/__tests__/auth.spec.js
+  - src/views/__tests__/VerifyEmail.spec.js
+  - src/views/__tests__/Login.spec.js
+  - src/domain/__tests__/accountValidation.spec.js
+  - src/lib/__tests__/supabase.spec.js
+  - src/__tests__/App.spec.js
+  - src/router/__tests__/authGuard.spec.js
+  - src/views/__tests__/ForgotPassword.spec.js
+-->
+
+---
+### Requirement: Authenticated interface displays the owned member username
+After a confirmed session is established, the application SHALL load the session owner's profile and display its username in the authenticated interface. Logout and unauthorized-session cleanup MUST clear the profile from memory.
+
+#### Scenario: Owned profile loads
+- **WHEN** a confirmed member enters the authenticated application and profile loading succeeds
+- **THEN** the sidebar SHALL display the preserved member username
+
+#### Scenario: Profile loading fails temporarily
+- **WHEN** the confirmed session is valid but the profile request fails
+- **THEN** the application SHALL retain protected access, display a non-sensitive fallback identity and a retryable profile error, and SHALL NOT display another member's cached username
+
+#### Scenario: Member signs out
+- **WHEN** the member signs out or an API response invalidates the session
+- **THEN** the application SHALL clear the loaded profile together with user-scoped order state
 
 <!-- @trace
 source: add-self-service-account-access

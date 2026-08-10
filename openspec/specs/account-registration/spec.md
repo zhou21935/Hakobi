@@ -1,25 +1,21 @@
-# supabase-environment-deployment Specification
+# account-registration Specification
 
 ## Purpose
 
-TBD - created by archiving change 'order-supabase-integration'. Update Purpose after archive.
+TBD - created by archiving change 'add-self-service-account-access'. Update Purpose after archive.
 
 ## Requirements
 
-### Requirement: The target Supabase database receives repository migrations
-The deployment workflow MUST link an explicitly selected Supabase project and apply all pending files from `supabase/migrations` without resetting remote data. Re-running the workflow with no new migrations SHALL make no schema changes. The deployed schema SHALL include the orders model and the member profile table, normalized username uniqueness, profile creation trigger, availability RPC, and Row Level Security policies required by repository migrations.
+### Requirement: Anyone can register with email, username, and password
+The frontend SHALL provide a public registration form requiring an email address, a member username, a password, and an exact confirmation password. It MUST validate all fields before calling Supabase Auth and MUST submit the display username as signup metadata.
 
-#### Scenario: Pending member profile migration is deployed
-- **WHEN** an operator selects the intended project and pushes the repository migrations
-- **THEN** the target database SHALL contain the member profile table, username constraints, normalized unique index, Auth user trigger, availability RPC, cascade ownership, and Row Level Security policies defined by the migration
+#### Scenario: Valid registration enters email verification state
+- **WHEN** a visitor submits a valid unused username, a valid email, and matching valid passwords
+- **THEN** the frontend SHALL call Supabase signup once, SHALL NOT treat an unconfirmed user as authenticated, and SHALL render the email verification waiting state
 
-#### Scenario: Deployment is repeated
-- **WHEN** the operator runs the migration push again with no new migration files
-- **THEN** the command SHALL report no pending migrations and SHALL preserve existing Auth users, profiles, and orders
-
-#### Scenario: Existing Auth users are backfilled
-- **WHEN** the member profile migration finds an existing Auth user without a profile
-- **THEN** it SHALL create a valid unique display username derived from the email local-part plus a deterministic short user-ID suffix and SHALL report no orphan Auth users after migration
+#### Scenario: Confirmation password differs
+- **WHEN** the confirmation password does not exactly match the password
+- **THEN** the frontend SHALL display a field error and SHALL NOT call Supabase signup
 
 
 <!-- @trace
@@ -556,44 +552,26 @@ tests:
 -->
 
 ---
-### Requirement: Runtime configuration separates public and secret values
-Deployment documentation MUST identify the frontend Supabase URL and anonymous publishable key as client configuration, and MUST keep database connection strings, passwords, and privileged keys out of frontend bundles and version control.
+### Requirement: Registration passwords satisfy the Hakobi password policy
+A registration password MUST contain between 8 and 64 characters inclusive, at least one ASCII letter and one digit, and no whitespace. It MUST NOT equal the member username under case-insensitive comparison and MUST NOT equal a case-insensitive entry in the weak-password set `password`, `password123`, `12345678`, `qwerty123`, or `admin123`. Uppercase letters, lowercase letters, and special characters SHALL be accepted without requiring every category.
 
-#### Scenario: Frontend is built for deployment
-- **WHEN** the production frontend build is generated
-- **THEN** it SHALL contain only the configured Supabase URL, anonymous publishable key, and API base URL required by browser code
+#### Scenario: Password boundaries and composition are validated
+- **WHEN** the registration form validates a password
+- **THEN** it SHALL produce the expected result in the boundary example
 
-#### Scenario: Server starts with production configuration
-- **WHEN** the backend starts with the Supabase URL, database connection string, CORS origin, and port supplied by its deployment environment
-- **THEN** it SHALL validate required configuration without logging secret values
+##### Example: password policy cases
 
----
-### Requirement: Deployment verification proves availability and owner isolation
-A documented verification command MUST check backend health, authenticated order CRUD, and cross-user isolation against the selected environment. Verification data MUST use dedicated test users and MUST be removed when the verification completes successfully or fails after creation.
-
-#### Scenario: Deployment passes verification
-- **WHEN** the target API and Supabase project are correctly configured for two test users
-- **THEN** verification SHALL confirm health returns HTTP 200, user A can create/read/update/delete its order, and user B receives HTTP 404 for user A's order
-
-#### Scenario: Verification detects an unsafe deployment
-- **WHEN** user B can read, update, or delete user A's verification order
-- **THEN** verification SHALL exit unsuccessfully, identify the failed isolation check without printing tokens, and attempt cleanup as user A
-
----
-### Requirement: Deployment instructions include rollback boundaries
-The deployment guide MUST identify the exact target before migration, require a backup for destructive future migrations, and describe rollback as a reviewed forward migration rather than a remote database reset.
-
-#### Scenario: Operator prepares a production migration
-- **WHEN** an operator follows the deployment guide for a production project
-- **THEN** the operator SHALL verify the project reference and migration plan before push and SHALL NOT run a database reset against the remote project
-
----
-### Requirement: Supabase Auth requires verified email and baseline password strength
-The target Supabase project MUST enable public email-password signup, Confirm Email, a minimum password length of 8, and a password character policy requiring letters and digits. Existing confirmed users SHALL retain access after the settings change.
-
-#### Scenario: New production user signs up
-- **WHEN** the deployed frontend submits a new valid email-password signup
-- **THEN** Supabase SHALL create an unconfirmed user, send a confirmation email, and SHALL NOT issue a protected-use session before confirmation
+| Password | Username | Expected result |
+| --- | --- | --- |
+| `hako2026` | `mika` | accepted |
+| `Hakobi@2026` | `mika` | accepted |
+| `abc1234` | `mika` | rejected: fewer than 8 characters |
+| 65 characters containing letters and digits | `mika` | rejected: more than 64 characters |
+| `hakobihakobi` | `mika` | rejected: missing digit |
+| `123456789` | `mika` | rejected: missing letter |
+| `hako bi2026` | `mika` | rejected: whitespace |
+| `MIKA2026` | `mika2026` | rejected: equals username case-insensitively |
+| `Password123` | `mika` | rejected: weak password case-insensitively |
 
 
 <!-- @trace
@@ -1130,16 +1108,20 @@ tests:
 -->
 
 ---
-### Requirement: Authentication redirects are explicitly allowlisted
-Deployment configuration MUST set the production Site URL and MUST allowlist the exact local-development and production callback URLs used for email confirmation and password recovery. Email templates SHALL direct recipients to the configured callback destination rather than an uncontrolled URL.
+### Requirement: Email confirmation is mandatory before protected use
+Supabase Auth MUST require email confirmation for new email-password accounts. A signup response without a confirmed session SHALL remain outside protected application content. A valid confirmation link SHALL establish a confirmed session, clear callback parameters from the browser URL, and navigate to `/orders`.
 
-#### Scenario: Production confirmation link is opened
-- **WHEN** a recipient clicks a production confirmation email link
-- **THEN** Supabase SHALL redirect only to the allowlisted Hakobi verification callback
+#### Scenario: Unconfirmed member attempts to sign in
+- **WHEN** a member submits correct credentials before confirming the email address
+- **THEN** authentication SHALL be rejected with a user-safe instruction to verify the email and protected routes SHALL remain unavailable
 
-#### Scenario: Unlisted callback is requested
-- **WHEN** a signup or recovery request supplies a redirect URL outside the allowlist
-- **THEN** Supabase SHALL reject or replace the destination according to the configured Site URL and SHALL NOT redirect to the unlisted origin
+#### Scenario: Member follows a valid confirmation link
+- **WHEN** Supabase accepts the one-time email confirmation token and returns a confirmed session
+- **THEN** the frontend SHALL show confirmation success, clear callback parameters, and replace the route with `/orders`
+
+#### Scenario: Confirmation link is invalid or expired
+- **WHEN** the confirmation callback contains an invalid or expired token
+- **THEN** the frontend SHALL show a non-sensitive failure state with an action to request another confirmation email and SHALL NOT render protected content
 
 
 <!-- @trace
@@ -1676,16 +1658,16 @@ tests:
 -->
 
 ---
-### Requirement: Production authentication email uses configured SMTP
-Production deployment documentation MUST require a custom SMTP provider and MUST identify sender identity, confirmation and recovery templates, rate limits, and a delivery verification procedure. Supabase's best-effort default sender SHALL be limited to development and manual testing.
+### Requirement: Confirmation email can be resent safely
+The verification waiting and failure states SHALL allow a visitor to request another signup confirmation email. The response MUST avoid disclosing whether an email belongs to an account, and rate-limit failures SHALL instruct the visitor to wait before retrying.
 
-#### Scenario: Production email delivery is verified
-- **WHEN** an operator completes deployment verification
-- **THEN** one dedicated test account SHALL receive a confirmation email and a recovery email through the configured SMTP sender, both links SHALL return to the production Hakobi origin, and the test account SHALL be removed after verification
+#### Scenario: Resend request is accepted
+- **WHEN** a visitor submits a syntactically valid email for confirmation resend
+- **THEN** the frontend SHALL call Supabase resend with type `signup` and SHALL display the same neutral sent message regardless of account existence
 
-#### Scenario: SMTP delivery fails
-- **WHEN** the provider rejects or does not deliver a test authentication email
-- **THEN** deployment verification SHALL fail without exposing SMTP credentials or authentication tokens
+#### Scenario: Resend is rate limited
+- **WHEN** Supabase rejects a resend request because of rate limiting
+- **THEN** the frontend SHALL display a wait-and-retry message and SHALL NOT expose the raw provider error
 
 <!-- @trace
 source: add-self-service-account-access
