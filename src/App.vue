@@ -16,6 +16,9 @@ watch(() => auth.isAuthenticated, (authenticated) => {
   if (auth.initialized && authenticated && !orders.initialized && !orders.isLoading) {
     orders.loadOrders().catch(() => {})
   }
+  if (auth.initialized && authenticated && !auth.profile && !auth.profileLoading) {
+    auth.loadProfile().catch(() => {})
+  }
 }, { immediate: true })
 
 const logout = async () => {
@@ -32,7 +35,15 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', finalizeOnUnloa
   <router-view v-if="route.meta.public" />
   <div v-else class="flex min-h-screen bg-page-bg">
     <!-- Sidebar -->
-    <AppSidebar :open="isSidebarOpen" @update:open="isSidebarOpen = $event" @logout="logout" />
+    <AppSidebar
+      :open="isSidebarOpen"
+      :username="auth.profile?.username"
+      :identity-fallback="auth.user?.email"
+      :profile-error="auth.profileError"
+      @retry-profile="auth.loadProfile().catch(() => {})"
+      @update:open="isSidebarOpen = $event"
+      @logout="logout"
+    />
 
     <!-- Mobile top bar -->
     <div class="md:hidden fixed top-0 left-0 right-0 z-20 flex items-center h-14 px-4 bg-page-bg border-b border-sidebar-border">

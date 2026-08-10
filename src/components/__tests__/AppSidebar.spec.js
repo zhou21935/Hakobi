@@ -35,6 +35,12 @@ describe('AppSidebar category navigation', () => {
 })
 
 describe('AppSidebar responsive drawer behavior', () => {
+  it('shows the member username and offers profile retry', async () => {
+    const wrapper = mount(AppSidebar, { props: { username: 'Hakobi', identityFallback: 'owner@example.com', profileError: 'failed' }, global: { plugins: [router] } })
+    expect(wrapper.get('[data-testid="member-identity"]').text()).toBe('Hakobi')
+    await wrapper.get('button.text-red-700').trigger('click')
+    expect(wrapper.emitted('retry-profile')).toHaveLength(1)
+  })
   it('emits logout when the logout control is activated', async () => {
     const wrapper = mount(AppSidebar, { global: { plugins: [router] } })
     await wrapper.get('[data-testid="logout-button"]').trigger('click')

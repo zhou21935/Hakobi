@@ -90,6 +90,9 @@ CI 與 Render 部署不會自動執行 Supabase migration、database reset 或�
 - 訂單資料驗證規則集中於 `src/domain/orderValidation.js`，表單與 store 共用同一份規則
 - 刪除訂單後，在目前訂單頁停留期間可使用「復原」撤回；重新整理、切換頁面、登出或關閉頁面時才提交永久刪除
 - 全部訂單頁可直接新增訂單並選擇「海外代購」或「集運包裹」分類；未知路由與不支援分類會顯示 Not Found 頁面
+- 任何人可使用唯一會員名稱與 Email 自行註冊；完成 Email 驗證後才能使用訂單功能
+- 支援重新寄送驗證信、忘記密碼與 Email 密碼重設，登入成功會返回原本要求的站內頁面
+- 密碼須為 8–64 個字元並至少包含一個英文字母與一個數字，禁止空白、使用名稱相同值與常見弱密碼
 
 ## 專案結構
 
@@ -98,9 +101,9 @@ src/
 ├── components/
 │   ├── ui/         # 通用 UI 元件（Button、Card、Modal…）
 │   └── orders/     # 訂單相關元件（OrderCard、OrderFormModal、SearchSortControls…）
-├── domain/          # 與框架無關的驗證/邏輯純函式（orderValidation）
-├── views/          # 路由頁面（Dashboard、AllOrders、OrderList、UiShowcase）
-├── stores/          # Pinia store（orders）
+├── domain/          # 與框架無關的驗證/邏輯純函式（訂單與帳號規則）
+├── views/           # 訂單與公開帳號路由頁面
+├── stores/          # Pinia store（orders、auth）
 ├── router/          # 路由設定
 └── assets/          # 全域樣式
 ```

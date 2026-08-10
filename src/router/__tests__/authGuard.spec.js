@@ -35,6 +35,13 @@ describe('authentication route guard', () => {
 
     expect(result).toEqual({ name: 'Login', query: { redirect: '/orders' } })
   })
+
+  it('redirects an authenticated member away from guest-only account routes', async () => {
+    authState.initialized = true
+    authState.isAuthenticated = true
+    const guard = createAuthGuard(createPinia())
+    expect(await guard({ name: 'Register', meta: { public: true, guestOnly: true }, fullPath: '/register' })).toEqual({ name: 'AllOrders' })
+  })
 })
 
 describe('route completeness', () => {
@@ -44,5 +51,6 @@ describe('route completeness', () => {
     expect(categoryRoute.beforeEnter({ params: { category: 'parcel' } })).toBe(true)
     expect(categoryRoute.beforeEnter({ params: { category: 'unknown' } })).toEqual({ name: 'NotFound' })
     expect(routes.at(-1)).toMatchObject({ path: '/:pathMatch(.*)*', name: 'NotFound' })
+    expect(routes.filter(({ name }) => ['Register', 'VerifyEmail', 'ForgotPassword', 'ResetPassword'].includes(name))).toHaveLength(4)
   })
 })

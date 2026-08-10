@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { mount } from '@vue/test-utils'
 
-const push = vi.fn()
-vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
+const replace = vi.fn()
+const route = { query: {} }
+vi.mock('vue-router', () => ({ useRouter: () => ({ replace }), useRoute: () => route }))
 
 const signIn = vi.fn()
 vi.mock('@/stores/auth', () => ({
@@ -16,6 +17,7 @@ describe('Login view', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    route.query = {}
   })
 
   it('navigates to orders after successful sign in', async () => {
@@ -28,7 +30,7 @@ describe('Login view', () => {
     await Promise.resolve()
 
     expect(signIn).toHaveBeenCalledWith('owner@example.com', 'correct-password')
-    expect(push).toHaveBeenCalledWith('/orders')
+    expect(replace).toHaveBeenCalledWith('/orders')
   })
 
   it('stays on login after rejected credentials', async () => {
@@ -40,7 +42,23 @@ describe('Login view', () => {
     await wrapper.get('form').trigger('submit')
     await Promise.resolve()
 
-    expect(push).not.toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('電子郵件或密碼不正確')
+  })
+
+  it('returns to a safe original route and rejects an external redirect', async () => {
+    signIn.mockResolvedValue(undefined)
+    route.query = { redirect: '/orders/parcel' }
+    const wrapper = mount(Login)
+    await wrapper.get('input[type="email"]').setValue('owner@example.com')
+    await wrapper.get('input[type="password"]').setValue('correct-password')
+    await wrapper.get('form').trigger('submit')
+    await Promise.resolve()
+    expect(replace).toHaveBeenLastCalledWith('/orders/parcel')
+
+    route.query = { redirect: '//evil.example' }
+    await wrapper.get('form').trigger('submit')
+    await Promise.resolve()
+    expect(replace).toHaveBeenLastCalledWith('/orders')
   })
 })

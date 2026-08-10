@@ -15,18 +15,23 @@
         <input v-model="password" type="password" autocomplete="current-password" required class="mt-1 w-full rounded-lg border border-card-border px-3 py-2" />
       </label>
       <Button class="w-full" type="submit" :disabled="auth.isSubmitting">{{ auth.isSubmitting ? '登入中…' : '登入' }}</Button>
+      <div class="flex justify-between text-sm">
+        <router-link class="text-primary-from underline" to="/register">建立帳號</router-link>
+        <router-link class="text-primary-from underline" to="/forgot-password">忘記密碼？</router-link>
+      </div>
     </form>
   </main>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Button from '@/components/ui/Button.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const email = ref('')
 const password = ref('')
 const message = ref(null)
@@ -35,7 +40,10 @@ const submit = async () => {
   message.value = null
   try {
     await auth.signIn(email.value, password.value)
-    await router.push('/orders')
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') && !route.query.redirect.startsWith('//')
+      ? route.query.redirect
+      : '/orders'
+    await router.replace(redirect)
   } catch (error) {
     message.value = error.message
   }
