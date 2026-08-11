@@ -1,4 +1,5 @@
 const USERNAME_PATTERN = /^[\p{Script=Han}A-Za-z0-9_]+$/u
+const DISPLAY_NAME_PATTERN = /^[\p{Script=Han}A-Za-z0-9]+$/u
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const WEAK_PASSWORDS = new Set(['password', 'password123', '12345678', 'qwerty123', 'admin123'])
 
@@ -11,6 +12,15 @@ export const validateUsername = (value) => {
   if (length < 3 || length > 20) error = '使用名稱須為 3–20 個字元'
   else if (!USERNAME_PATTERN.test(username)) error = '使用名稱只能包含中文、英文字母、數字及底線'
   return { isValid: !error, error, value: username, normalized: normalizeUsername(username) }
+}
+
+export const validateDisplayName = (value) => {
+  const displayName = String(value ?? '')
+  const length = Array.from(displayName).length
+  let error = null
+  if (length < 2 || length > 30) error = '顯示名稱須為 2–30 個字元'
+  else if (!DISPLAY_NAME_PATTERN.test(displayName)) error = '顯示名稱只能包含中文、英文字母及數字'
+  return { isValid: !error, error, value: displayName }
 }
 
 export const validateEmail = (value) => {

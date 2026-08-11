@@ -36,6 +36,21 @@ describe('authentication route guard', () => {
     expect(result).toEqual({ name: 'Login', query: { redirect: '/orders' } })
   })
 
+  it('protects the personal profile route and preserves it as the return destination', async () => {
+    const profileRoute = routes.find(({ name }) => name === 'Profile')
+    expect(profileRoute).toMatchObject({ path: '/profile', meta: { requiresAuth: true } })
+
+    const guard = createAuthGuard(createPinia())
+    expect(await guard({ meta: profileRoute.meta, fullPath: '/profile' })).toEqual({
+      name: 'Login',
+      query: { redirect: '/profile' }
+    })
+
+    authState.initialized = true
+    authState.isAuthenticated = true
+    expect(await guard({ meta: profileRoute.meta, fullPath: '/profile' })).toBe(true)
+  })
+
   it('redirects an authenticated member away from guest-only account routes', async () => {
     authState.initialized = true
     authState.isAuthenticated = true

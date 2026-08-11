@@ -22,7 +22,11 @@ describe('application order initialization', () => {
     state.auth.signOut.mockReset().mockResolvedValue(undefined)
     state.auth.profile = null
     state.auth.profileLoading = false
+    state.auth.profileError = null
+    state.auth.user = { email: 'owner@example.com' }
     state.auth.loadProfile.mockReset().mockResolvedValue(undefined)
+    state.route.meta = { requiresAuth: true }
+    state.route.name = 'Dashboard'
   })
 
   it('loads orders when the dashboard is the first protected view and does not duplicate a completed load', async () => {
@@ -43,6 +47,37 @@ describe('application order initialization', () => {
     await flushPromises()
     expect(state.orders.finalizePendingDelete).toHaveBeenCalledWith()
     expect(state.auth.signOut).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
+  it('loads the owned profile when the personal profile route is entered directly', () => {
+    state.route.name = 'Profile'
+    const wrapper = mount(App, { global: { stubs: { AppSidebar: true, RouterView: true } } })
+
+    expect(state.auth.loadProfile).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
+  it('passes only confirmed profile identity and safe fallback state to the sidebar', () => {
+    state.auth.profile = { userId: 'user-a', username: 'Hakobi_02', displayName: '王小明' }
+    const wrapper = mount(App, { global: { stubs: { AppSidebar: true, RouterView: true } } })
+    const sidebar = wrapper.findComponent({ name: 'AppSidebar' })
+
+    expect(sidebar.props('username')).toBe('Hakobi_02')
+    expect(sidebar.props('identityFallback')).toBe('owner@example.com')
+    expect(sidebar.props('profileError')).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('does not pass a stale username when profile loading fails', () => {
+    state.auth.profile = null
+    state.auth.profileError = '會員資料載入失敗，請重試'
+    const wrapper = mount(App, { global: { stubs: { AppSidebar: true, RouterView: true } } })
+    const sidebar = wrapper.findComponent({ name: 'AppSidebar' })
+
+    expect(sidebar.props('username')).toBe('')
+    expect(sidebar.props('identityFallback')).toBe('owner@example.com')
+    expect(sidebar.props('profileError')).toBe('會員資料載入失敗，請重試')
     wrapper.unmount()
   })
 })

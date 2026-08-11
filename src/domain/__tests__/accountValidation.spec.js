@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeUsername, validatePassword, validateRegistration, validateUsername } from '@/domain/accountValidation'
+import { normalizeUsername, validateDisplayName, validatePassword, validateRegistration, validateUsername } from '@/domain/accountValidation'
 
 describe('account validation', () => {
   it.each([
@@ -12,6 +12,20 @@ describe('account validation', () => {
   ])('validates username %s', (input, valid, normalized) => {
     expect(normalizeUsername(input)).toBe(normalized)
     expect(validateUsername(input).isValid).toBe(valid)
+  })
+
+  it.each([
+    ['王小明', true],
+    ['Hakobi01', true],
+    ['王小明88', true],
+    ['王', false],
+    ['a'.repeat(31), false],
+    ['王 小明', false],
+    ['Hakobi_01', false],
+    ['王小明🙂', false],
+    ['', false]
+  ])('validates display name %s', (input, valid) => {
+    expect(validateDisplayName(input).isValid).toBe(valid)
   })
 
   it.each([
