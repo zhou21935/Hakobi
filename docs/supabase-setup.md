@@ -24,7 +24,7 @@
 - `VITE_SUPABASE_ANON_KEY`：anonymous publishable key；不得使用 service-role key。
 - `VITE_API_BASE_URL`：已部署 Fastify API base URL。
 
-後端從 `server/.env.example` 複製設定：
+後端從 `backend/.env.example` 複製設定：
 
 - `SUPABASE_URL`、`SUPABASE_DB_URL`、`CORS_ORIGIN`、`PORT`。
 - `SUPABASE_DB_URL` 是 server secret，不得加上 `VITE_`、寫入前端設定、log 或版本控制。

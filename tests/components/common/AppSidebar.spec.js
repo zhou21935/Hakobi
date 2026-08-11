@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
-import AppSidebar from '@/components/AppSidebar.vue'
+import AppSidebar from '@/components/common/AppSidebar.vue'
 
 const routes = [
   { path: '/', name: 'Dashboard', component: { template: '<div />' } },

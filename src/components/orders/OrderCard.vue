@@ -83,7 +83,7 @@
 <script setup>
 import { computed } from 'vue'
 import Card from '@/components/ui/Card.vue'
-import StatusBadge from '@/components/StatusBadge.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS } from '@/stores/orders'
 
 const props = defineProps({

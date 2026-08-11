@@ -5,13 +5,38 @@ import { describe, expect, it } from 'vitest'
 const readProjectFile = (path) => readFile(resolve(process.cwd(), path), 'utf8')
 
 describe('deployment configuration contract', () => {
+  it('exposes frontend, backend, and full-project commands from the repository root', async () => {
+    const rootPackage = JSON.parse(await readProjectFile('package.json'))
+    const backendPackage = JSON.parse(await readProjectFile('backend/package.json'))
+
+    expect(rootPackage.scripts).toMatchObject({
+      dev: 'vite',
+      test: 'vitest run',
+      build: 'vite build',
+      'dev:backend': 'npm --prefix backend run dev',
+      'test:backend': 'npm --prefix backend test',
+      'typecheck:backend': 'npm --prefix backend run typecheck',
+      'build:backend': 'npm --prefix backend run build',
+      'test:all': 'npm test && npm run test:backend',
+      'build:all': 'npm run build && npm run build:backend',
+    })
+    expect(backendPackage.scripts).toMatchObject({
+      dev: 'tsx watch src/index.ts',
+      test: 'vitest run',
+      typecheck: 'tsc --noEmit',
+      build: 'tsc -p tsconfig.build.json',
+      start: 'node dist/index.js',
+    })
+  })
+
   it('runs separate frontend and backend checks for pull requests and main pushes', async () => {
     const workflow = await readProjectFile('.github/workflows/ci.yml')
 
     expect(workflow).toMatch(/pull_request:/)
     expect(workflow).toMatch(/push:\s*\n\s+branches:\s*\[main\]/)
     expect(workflow).toMatch(/frontend:[\s\S]*?npm ci[\s\S]*?npm test[\s\S]*?npm run build/)
-    expect(workflow).toMatch(/backend:[\s\S]*?working-directory:\s*server[\s\S]*?npm ci[\s\S]*?npm test[\s\S]*?npm run typecheck[\s\S]*?npm run build/)
+    expect(workflow).toMatch(/backend:[\s\S]*?working-directory:\s*backend[\s\S]*?cache-dependency-path:\s*backend\/package-lock\.json[\s\S]*?npm ci[\s\S]*?npm test[\s\S]*?npm run typecheck[\s\S]*?npm run build/)
+    expect(workflow).not.toMatch(/working-directory:\s*server|cache-dependency-path:\s*server\//)
   })
 
   it('defines checks-gated frontend and backend Render services', async () => {
@@ -23,7 +48,8 @@ describe('deployment configuration contract', () => {
     expect(blueprint.match(/autoDeployTrigger:\s*checksPass/g)).toHaveLength(2)
     expect(blueprint).toMatch(/runtime:\s*static[\s\S]*?staticPublishPath:\s*\.\/dist/)
     expect(blueprint).toMatch(/type:\s*rewrite[\s\S]*?source:\s*\/\*[\s\S]*?destination:\s*\/index\.html/)
-    expect(blueprint).toMatch(/runtime:\s*node[\s\S]*?rootDir:\s*server[\s\S]*?buildCommand:\s*npm ci && npm run build[\s\S]*?startCommand:\s*npm start[\s\S]*?healthCheckPath:\s*\/health/)
+    expect(blueprint).toMatch(/runtime:\s*node[\s\S]*?rootDir:\s*backend[\s\S]*?buildCommand:\s*npm ci && npm run build[\s\S]*?startCommand:\s*npm start[\s\S]*?healthCheckPath:\s*\/health/)
+    expect(blueprint).not.toMatch(/rootDir:\s*server/)
   })
 
   it('declares required environment variables without inline values', async () => {

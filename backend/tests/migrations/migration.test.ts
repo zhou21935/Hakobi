@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const migration = (name: string) =>
-  readFileSync(resolve(import.meta.dirname, `../../supabase/migrations/${name}`), 'utf8').toLowerCase()
+  readFileSync(resolve(import.meta.dirname, `../../../supabase/migrations/${name}`), 'utf8').toLowerCase()
 
 describe('migration', () => {
   it('has schema security contract', () => {

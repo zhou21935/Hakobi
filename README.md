@@ -23,15 +23,15 @@ npm test          # 執行測試（Vitest）
 
 ## 後端
 
-後端位於 `server/`，提供公開 `GET /health` 及受 Supabase access token 保護的 `/api/orders` CRUD API。
+後端位於 `backend/`，提供公開 `GET /health` 及受 Supabase access token 保護的 `/api/orders` CRUD API。
 
 ```sh
-npm --prefix server install
-cp server/.env.example server/.env
-npm --prefix server run dev
-npm --prefix server test
-npm --prefix server run typecheck
-npm --prefix server run build
+npm --prefix backend install
+cp backend/.env.example backend/.env
+npm run dev:backend
+npm run test:backend
+npm run typecheck:backend
+npm run build:backend
 ```
 
 設定與 owner/cross-owner 驗證步驟見 [`docs/supabase-setup.md`](docs/supabase-setup.md)。
@@ -51,7 +51,7 @@ GitHub Actions 會在每個 pull request 與推送至 `main` 時執行兩個獨�
 
 1. 先在 Render 連結此 GitHub repository，選擇 **New > Blueprint**，並指定根目錄的 `render.yaml`。
 2. 在 Blueprint 預覽確認 static site `hakobi-web` 與 Web Service `hakobi-api` 的可用名稱及預期公開 URL。若名稱已被使用，依 Render 提示調整名稱，並以實際 URL 填寫下列跨服務變數。
-3. 在建立畫面輸入六個 `sync: false` 環境變數。所有值只存於 Render，不要提交真實值到 `.env.example`、`server/.env.example` 或 `render.yaml`。
+3. 在建立畫面輸入六個 `sync: false` 環境變數。所有值只存於 Render，不要提交真實值到 `.env.example`、`backend/.env.example` 或 `render.yaml`。
 4. 建立服務後再次核對 Render 分配的公開 URL：前端的 `VITE_API_BASE_URL` 必須等於後端 origin，後端的 `CORS_ORIGIN` 必須等於前端 origin。若實際 URL 與建立時預期不同，修正變數並手動重新部署兩個服務。
 
 | Render 服務 | 變數 | 用途 |
@@ -99,13 +99,20 @@ CI 與 Render 部署不會自動執行 Supabase migration、database reset 或�
 ```
 src/
 ├── components/
-│   ├── ui/         # 通用 UI 元件（Button、Card、Modal…）
+│   ├── common/     # 跨功能共用元件（AppSidebar、StatusBadge）
+│   ├── ui/         # 基礎 UI 元件（Button、Card、Modal…）
 │   └── orders/     # 訂單相關元件（OrderCard、OrderFormModal、SearchSortControls…）
 ├── domain/          # 與框架無關的驗證/邏輯純函式（訂單與帳號規則）
 ├── views/           # 訂單與公開帳號路由頁面
 ├── stores/          # Pinia store（orders、auth）
 ├── router/          # 路由設定
 └── assets/          # 全域樣式
+tests/                # 集中的前端測試，依來源責任分類
+backend/
+├── src/              # Fastify 後端正式程式
+└── tests/            # 集中的後端測試
+scripts/
+└── tests/            # CI、Render 與部署工具測試
 ```
 
 ## Spec-Driven Development

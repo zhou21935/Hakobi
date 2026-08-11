@@ -24,7 +24,7 @@ services:
     plan: free
     branch: main
     autoDeployTrigger: checksPass
-    rootDir: server
+    rootDir: backend
     buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /health
