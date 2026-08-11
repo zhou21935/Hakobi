@@ -21,7 +21,7 @@ describe('deployment configuration contract', () => {
       'build:all': 'npm run build && npm run build:backend',
     })
     expect(backendPackage.scripts).toMatchObject({
-      dev: 'tsx watch src/index.ts',
+      dev: 'node --env-file=.env --watch --import tsx src/index.ts',
       test: 'vitest run',
       typecheck: 'tsc --noEmit',
       build: 'tsc -p tsconfig.build.json',
