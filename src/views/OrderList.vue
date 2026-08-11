@@ -9,12 +9,13 @@
       <SearchSortControls v-model:search="searchQuery" v-model:sort="sortOption" />
     </div>
 
-    <div data-testid="status-filters" class="max-w-6xl">
-      <StatusFilterTabs v-model="selectedStatus" :counts="counts" />
-    </div>
-
-    <div data-testid="create-order-action" class="flex max-w-6xl justify-end">
-      <Button @click="openCreateForm">+ 新增訂單</Button>
+    <div data-testid="order-toolbar" class="flex max-w-6xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div data-testid="status-filters" class="min-w-0 md:flex-1">
+        <StatusFilterTabs v-model="selectedStatus" :counts="counts" />
+      </div>
+      <div data-testid="create-order-action" class="flex justify-end md:shrink-0">
+        <Button @click="openCreateForm">+ 新增訂單</Button>
+      </div>
     </div>
 
     <div data-testid="order-content" class="max-w-6xl space-y-3 md:space-y-4">

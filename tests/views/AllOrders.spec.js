@@ -55,15 +55,19 @@ describe('AllOrders details integration', () => {
 })
 
 describe('AllOrders create integration', () => {
-  it('places the compact create action after status filters and before order content', () => {
+  it('places filters and the compact create action in a responsive toolbar before order content', () => {
     const wrapper = mount(AllOrders, { attachTo: document.body })
+    const toolbar = wrapper.get('[data-testid="order-toolbar"]')
     const statusFilters = wrapper.get('[data-testid="status-filters"]')
     const createAction = wrapper.get('[data-testid="create-order-action"]')
     const orderContent = wrapper.get('[data-testid="order-content"]')
 
-    expect(statusFilters.element.compareDocumentPosition(createAction.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(createAction.element.compareDocumentPosition(orderContent.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(statusFilters.element.parentElement).toBe(toolbar.element)
+    expect(createAction.element.parentElement).toBe(toolbar.element)
+    expect(toolbar.classes()).toEqual(expect.arrayContaining(['max-w-6xl', 'flex-col', 'md:flex-row', 'md:justify-between']))
+    expect(toolbar.element.compareDocumentPosition(orderContent.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(createAction.classes()).toContain('justify-end')
+    expect(createAction.classes()).toContain('md:shrink-0')
     expect(createAction.get('button').classes()).not.toContain('w-full')
 
     wrapper.unmount()
