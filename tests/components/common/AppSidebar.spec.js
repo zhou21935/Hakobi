@@ -54,6 +54,25 @@ describe('AppSidebar category navigation', () => {
 })
 
 describe('AppSidebar responsive drawer behavior', () => {
+  it('preserves the identity row without rendering text while identity is loading', () => {
+    const wrapper = mount(AppSidebar, { props: { identityLoading: true, identityFallback: 'owner@example.com' }, global: { plugins: [router] } })
+    const identity = wrapper.get('[data-testid="member-identity"]')
+
+    expect(identity.exists()).toBe(true)
+    expect(identity.text()).toBe('')
+    expect(identity.classes()).toEqual(expect.arrayContaining(['mb-1', 'h-5', 'text-sm']))
+    expect(identity.attributes('aria-busy')).toBe('true')
+    expect(wrapper.text()).not.toContain('owner@example.com')
+  })
+
+  it('shows a neutral member identity when profile identity is still loading', () => {
+    const wrapper = mount(AppSidebar, { props: { username: '', identityFallback: '' }, global: { plugins: [router] } })
+    const identity = wrapper.get('[data-testid="member-identity"]')
+
+    expect(identity.text()).toBe('會員')
+    expect(wrapper.text()).not.toContain('owner@example.com')
+  })
+
   it('shows the member username and offers profile retry', async () => {
     const wrapper = mount(AppSidebar, { props: { username: 'Hakobi', identityFallback: 'owner@example.com', profileError: 'failed' }, global: { plugins: [router] } })
     const identity = wrapper.get('[data-testid="member-identity"]')

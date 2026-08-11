@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { reactive } from 'vue'
 
 const state = vi.hoisted(() => ({
   auth: { initialized: true, isAuthenticated: true, profile: null, profileLoading: false, profileError: null, user: { email: 'owner@example.com' }, loadProfile: vi.fn(), signOut: vi.fn() },
@@ -7,7 +8,8 @@ const state = vi.hoisted(() => ({
   route: { meta: { requiresAuth: true }, name: 'OrderOverview' },
   router: { replace: vi.fn() }
 }))
-vi.mock('@/stores/auth', () => ({ useAuthStore: () => state.auth }))
+const authStore = reactive(state.auth)
+vi.mock('@/stores/auth', () => ({ useAuthStore: () => authStore }))
 vi.mock('@/stores/orders', () => ({ useOrdersStore: () => state.orders }))
 vi.mock('vue-router', () => ({ useRoute: () => state.route, useRouter: () => state.router }))
 
@@ -20,6 +22,8 @@ describe('application order initialization', () => {
     state.orders.loadOrders.mockReset().mockResolvedValue(undefined)
     state.orders.finalizePendingDelete.mockReset().mockResolvedValue(undefined)
     state.auth.signOut.mockReset().mockResolvedValue(undefined)
+    authStore.initialized = true
+    state.auth.isAuthenticated = true
     state.auth.profile = null
     state.auth.profileLoading = false
     state.auth.profileError = null
@@ -27,6 +31,19 @@ describe('application order initialization', () => {
     state.auth.loadProfile.mockReset().mockResolvedValue(undefined)
     state.route.meta = { requiresAuth: true }
     state.route.name = 'OrderOverview'
+  })
+
+  it('loads the owned profile after a restored session finishes authentication initialization', async () => {
+    authStore.initialized = false
+    const wrapper = mount(App, { global: { stubs: { AppSidebar: true, RouterView: true } } })
+
+    expect(state.auth.loadProfile).not.toHaveBeenCalled()
+
+    authStore.initialized = true
+    await wrapper.vm.$nextTick()
+
+    expect(state.auth.loadProfile).toHaveBeenCalledOnce()
+    wrapper.unmount()
   })
 
   it('loads orders when the dashboard is the first protected view and does not duplicate a completed load', async () => {
@@ -58,14 +75,42 @@ describe('application order initialization', () => {
     wrapper.unmount()
   })
 
-  it('passes only confirmed profile identity and safe fallback state to the sidebar', () => {
+  it('passes only the confirmed profile identity to the sidebar after loading succeeds', () => {
     state.auth.profile = { userId: 'user-a', username: 'Hakobi_02', displayName: '王小明' }
     const wrapper = mount(App, { global: { stubs: { AppSidebar: true, RouterView: true } } })
     const sidebar = wrapper.findComponent({ name: 'AppSidebar' })
 
     expect(sidebar.props('username')).toBe('Hakobi_02')
-    expect(sidebar.props('identityFallback')).toBe('owner@example.com')
+    expect(sidebar.props('identityFallback')).toBe('')
+    expect(sidebar.props('identityLoading')).toBe(false)
     expect(sidebar.props('profileError')).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('does not expose the session email while the owned profile is pending', () => {
+    state.auth.profile = null
+    state.auth.profileLoading = true
+    state.auth.profileError = null
+    const wrapper = mount(App, { global: { stubs: { AppSidebar: true, RouterView: true } } })
+    const sidebar = wrapper.findComponent({ name: 'AppSidebar' })
+
+    expect(sidebar.props('username')).toBe('')
+    expect(sidebar.props('identityFallback')).toBe('')
+    expect(sidebar.props('identityLoading')).toBe(true)
+    expect(sidebar.props('profileError')).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('keeps the sidebar identity loading after a new session signs in', async () => {
+    authStore.isAuthenticated = false
+    const wrapper = mount(App, { global: { stubs: { AppSidebar: true, RouterView: true } } })
+
+    authStore.isAuthenticated = true
+    await wrapper.vm.$nextTick()
+
+    const sidebar = wrapper.findComponent({ name: 'AppSidebar' })
+    expect(sidebar.props('identityLoading')).toBe(true)
+    expect(sidebar.props('identityFallback')).toBe('')
     wrapper.unmount()
   })
 
@@ -77,6 +122,7 @@ describe('application order initialization', () => {
 
     expect(sidebar.props('username')).toBe('')
     expect(sidebar.props('identityFallback')).toBe('owner@example.com')
+    expect(sidebar.props('identityLoading')).toBe(false)
     expect(sidebar.props('profileError')).toBe('會員資料載入失敗，請重試')
     wrapper.unmount()
   })

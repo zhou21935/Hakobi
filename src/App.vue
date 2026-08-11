@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppSidebar from '@/components/common/AppSidebar.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -10,13 +10,14 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const orders = useOrdersStore()
+const identityLoading = computed(() => !auth.initialized || (auth.isAuthenticated && !auth.profile && !auth.profileError))
 
-watch(() => auth.isAuthenticated, (authenticated) => {
-  if (auth.initialized && !authenticated && route.name !== 'Login') router.replace({ name: 'Login' })
-  if (auth.initialized && authenticated && !orders.initialized && !orders.isLoading) {
+watch(() => [auth.initialized, auth.isAuthenticated], ([initialized, authenticated]) => {
+  if (initialized && !authenticated && route.name !== 'Login') router.replace({ name: 'Login' })
+  if (initialized && authenticated && !orders.initialized && !orders.isLoading) {
     orders.loadOrders().catch(() => {})
   }
-  if (auth.initialized && authenticated && !auth.profile && !auth.profileLoading) {
+  if (initialized && authenticated && !auth.profile && !auth.profileLoading) {
     auth.loadProfile().catch(() => {})
   }
 }, { immediate: true })
@@ -38,7 +39,8 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', finalizeOnUnloa
     <AppSidebar
       :open="isSidebarOpen"
       :username="auth.profile?.username"
-      :identity-fallback="auth.user?.email"
+      :identity-fallback="auth.profileError ? auth.user?.email : ''"
+      :identity-loading="identityLoading"
       :profile-error="auth.profileError"
       @retry-profile="auth.loadProfile().catch(() => {})"
       @update:open="isSidebarOpen = $event"

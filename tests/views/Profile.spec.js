@@ -38,11 +38,14 @@ describe('Profile view', () => {
     expect(wrapper.get('[data-testid="profile-email"]').attributes('readonly')).toBeDefined()
   })
 
-  it('uses concise profile copy and labels the display-name field as 真實姓名', () => {
+  it('uses concise profile copy and member-facing field labels', () => {
     const wrapper = mountProfile()
+    const labels = wrapper.findAll('label').map(label => label.text())
 
     expect(wrapper.text()).not.toContain('查看並更新你的會員識別資料')
-    expect(wrapper.findAll('label').map(label => label.text())).toContainEqual(expect.stringContaining('真實姓名'))
+    expect(labels).toContainEqual(expect.stringContaining('會員名稱'))
+    expect(labels).toContainEqual(expect.stringContaining('真實姓名'))
+    expect(wrapper.text()).not.toContain('會員使用名稱')
     expect(wrapper.text()).not.toContain('顯示名稱／真實姓名')
   })
 

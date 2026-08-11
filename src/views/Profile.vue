@@ -33,7 +33,7 @@
             {{ saveError }}
           </p>
 
-          <label class="block text-sm font-semibold text-ink">會員使用名稱
+          <label class="block text-sm font-semibold text-ink">會員名稱
             <input
               v-model="form.username"
               data-testid="profile-username"

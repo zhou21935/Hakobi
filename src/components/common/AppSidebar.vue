@@ -86,7 +86,11 @@
 
     <!-- Footer -->
     <div class="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-sidebar-border">
-      <p data-testid="member-identity" class="mb-1 truncate text-center text-sm font-semibold text-ink">{{ username || identityFallback || '會員' }}</p>
+      <p
+        data-testid="member-identity"
+        class="mb-1 h-5 truncate text-center text-sm font-semibold text-ink"
+        :aria-busy="identityLoading"
+      >{{ identityLoading ? '' : (username || identityFallback || '會員') }}</p>
       <button v-if="profileError" type="button" class="mb-2 text-xs text-red-700 underline" @click="$emit('retry-profile')">會員資料載入失敗，重試</button>
       <button
         data-testid="logout-button"
@@ -112,6 +116,7 @@ defineProps({
   },
   username: { type: String, default: '' },
   identityFallback: { type: String, default: '' },
+  identityLoading: { type: Boolean, default: false },
   profileError: { type: String, default: '' }
 })
 
