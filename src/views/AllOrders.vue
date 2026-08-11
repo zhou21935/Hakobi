@@ -1,22 +1,23 @@
 <template>
   <div class="p-4 md:p-8 space-y-6">
-    <div class="flex max-w-6xl flex-col gap-4 md:flex-row md:items-start md:justify-between">
-      <div>
-        <h1 class="text-2xl md:text-4xl font-heading font-bold text-ink mb-2">全部訂單</h1>
-        <p class="text-base md:text-lg text-ink-muted">跨分類檢視所有訂單</p>
-      </div>
-      <Button data-testid="create-order" class="w-full md:w-auto" @click="openCreateForm">+ 新增訂單</Button>
+    <div class="max-w-6xl">
+      <h1 class="text-2xl md:text-4xl font-heading font-bold text-ink mb-2">全部訂單</h1>
+      <p class="text-base md:text-lg text-ink-muted">跨分類檢視所有訂單</p>
     </div>
 
     <div class="max-w-6xl">
       <SearchSortControls v-model:search="searchQuery" v-model:sort="sortOption" />
     </div>
 
-    <div class="max-w-6xl flex flex-col md:flex-row gap-3">
+    <div data-testid="status-filters" class="max-w-6xl flex flex-col md:flex-row gap-3">
       <StatusFilterTabs v-model="selectedStatus" :counts="counts" />
     </div>
 
-    <div class="max-w-6xl space-y-4">
+    <div data-testid="create-order-action" class="flex max-w-6xl justify-end">
+      <Button data-testid="create-order" @click="openCreateForm">+ 新增訂單</Button>
+    </div>
+
+    <div data-testid="order-content" class="max-w-6xl space-y-4">
       <div v-if="store.error" role="alert" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         {{ store.error }}
         <Button v-if="store.initialized" data-testid="retry-orders" variant="secondary" size="sm" class="ml-2" @click="retryLoad">重試</Button>

@@ -55,6 +55,20 @@ describe('AllOrders details integration', () => {
 })
 
 describe('AllOrders create integration', () => {
+  it('places the compact create action after status filters and before order content', () => {
+    const wrapper = mount(AllOrders, { attachTo: document.body })
+    const statusFilters = wrapper.get('[data-testid="status-filters"]')
+    const createAction = wrapper.get('[data-testid="create-order-action"]')
+    const orderContent = wrapper.get('[data-testid="order-content"]')
+
+    expect(statusFilters.element.compareDocumentPosition(createAction.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(createAction.element.compareDocumentPosition(orderContent.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(createAction.classes()).toContain('justify-end')
+    expect(createAction.get('button').classes()).not.toContain('w-full')
+
+    wrapper.unmount()
+  })
+
   it('creates an order with the category selected in the shared form and keeps the form open on failure', async () => {
     const created = order({ id: 'order-b', category: 'parcel', name: 'Parcel' })
     api.createOrder.mockResolvedValueOnce(created)

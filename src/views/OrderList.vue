@@ -1,28 +1,29 @@
 <template>
   <div class="p-4 md:p-8 space-y-6">
-    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 max-w-6xl">
-      <div>
-        <h1 class="text-2xl md:text-4xl font-heading font-bold text-ink mb-2">{{ categoryLabel }}</h1>
-        <p class="text-base md:text-lg text-ink-muted">管理{{ categoryLabel }}分類的訂單</p>
-      </div>
-      <Button class="w-full md:w-auto" @click="openCreateForm">+ 新增訂單</Button>
+    <div class="max-w-6xl">
+      <h1 class="text-2xl md:text-4xl font-heading font-bold text-ink mb-2">{{ categoryLabel }}</h1>
+      <p class="text-base md:text-lg text-ink-muted">管理{{ categoryLabel }}分類的訂單</p>
     </div>
 
     <div class="max-w-6xl">
       <SearchSortControls v-model:search="searchQuery" v-model:sort="sortOption" />
     </div>
 
-    <div class="max-w-6xl">
+    <div data-testid="status-filters" class="max-w-6xl">
       <StatusFilterTabs v-model="selectedStatus" :counts="counts" />
     </div>
 
-    <div class="max-w-6xl space-y-3 md:space-y-4">
+    <div data-testid="create-order-action" class="flex max-w-6xl justify-end">
+      <Button @click="openCreateForm">+ 新增訂單</Button>
+    </div>
+
+    <div data-testid="order-content" class="max-w-6xl space-y-3 md:space-y-4">
       <div v-if="store.error" role="alert" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         {{ store.error }}
         <Button v-if="store.initialized" data-testid="retry-orders" variant="secondary" size="sm" class="ml-2" @click="retryLoad">重試</Button>
       </div>
       <p v-if="store.isLoading && !store.initialized" class="text-ink-muted">載入訂單中…</p>
-      <p v-else-if="!store.error && filteredOrders.length === 0" class="text-ink-muted">尚無訂單,點擊右上角「新增訂單」開始記錄。</p>
+      <p v-else-if="!store.error && filteredOrders.length === 0" class="text-ink-muted">尚無訂單，點擊「新增訂單」開始記錄。</p>
       <OrderCard
         v-for="order in filteredOrders"
         :key="order.id"

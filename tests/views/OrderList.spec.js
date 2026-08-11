@@ -36,6 +36,22 @@ beforeEach(async () => {
 const mountOrderList = () => mount(OrderList, { global: { plugins: [router] }, attachTo: document.body })
 
 describe('OrderList category route sync', () => {
+  it('places the compact create action after status filters and before order content', () => {
+    const wrapper = mountOrderList()
+    const statusFilters = wrapper.get('[data-testid="status-filters"]')
+    const createAction = wrapper.get('[data-testid="create-order-action"]')
+    const orderContent = wrapper.get('[data-testid="order-content"]')
+
+    expect(statusFilters.element.compareDocumentPosition(createAction.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(createAction.element.compareDocumentPosition(orderContent.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(createAction.classes()).toContain('justify-end')
+    expect(createAction.get('button').classes()).not.toContain('w-full')
+    expect(orderContent.text()).not.toContain('右上角')
+    expect(orderContent.text()).toContain('點擊「新增訂單」開始記錄')
+
+    wrapper.unmount()
+  })
+
   it('updates the page title when navigating from one category route to another', async () => {
     const wrapper = mountOrderList()
     expect(wrapper.get('h1').text()).toBe('海外代購')
