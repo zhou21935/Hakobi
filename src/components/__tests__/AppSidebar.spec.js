@@ -5,7 +5,8 @@ import AppSidebar from '@/components/AppSidebar.vue'
 
 const routes = [
   { path: '/', name: 'Dashboard', component: { template: '<div />' } },
-  { path: '/orders/:category', name: 'OrderList', component: { template: '<div />' } }
+  { path: '/orders/:category', name: 'OrderList', component: { template: '<div />' } },
+  { path: '/profile', name: 'Profile', component: { template: '<div />' } }
 ]
 
 let router
@@ -32,12 +33,30 @@ describe('AppSidebar category navigation', () => {
     expect(wrapper.find('a[href="/ui-showcase"]').exists()).toBe(false)
     expect(wrapper.find('a[href="/orders"]').exists()).toBe(true)
   })
+
+  it('renders personal profile in a member section after order categories', async () => {
+    await router.push('/profile')
+    const wrapper = mount(AppSidebar, { props: { open: true }, global: { plugins: [router] } })
+    const memberSection = wrapper.get('[data-testid="member-navigation"]')
+    const profileLink = memberSection.get('a[href="/profile"]')
+
+    expect(memberSection.text()).toContain('會員')
+    expect(profileLink.text()).toContain('個人資料')
+    expect(profileLink.classes()).toContain('text-white')
+    const destinations = wrapper.findAll('nav a').map(link => link.attributes('href'))
+    expect(destinations.indexOf('/profile')).toBeGreaterThan(destinations.indexOf('/orders/parcel'))
+
+    await profileLink.trigger('click')
+    expect(wrapper.emitted('update:open')).toContainEqual([false])
+  })
 })
 
 describe('AppSidebar responsive drawer behavior', () => {
   it('shows the member username and offers profile retry', async () => {
     const wrapper = mount(AppSidebar, { props: { username: 'Hakobi', identityFallback: 'owner@example.com', profileError: 'failed' }, global: { plugins: [router] } })
-    expect(wrapper.get('[data-testid="member-identity"]').text()).toBe('Hakobi')
+    const identity = wrapper.get('[data-testid="member-identity"]')
+    expect(identity.text()).toBe('Hakobi')
+    expect(identity.classes()).toEqual(expect.arrayContaining(['text-center', 'truncate']))
     await wrapper.get('button.text-red-700').trigger('click')
     expect(wrapper.emitted('retry-profile')).toHaveLength(1)
   })

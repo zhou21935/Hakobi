@@ -78,4 +78,28 @@ describe('migration', () => {
     expect(sql).toContain("substring(id::text, 1, 8)")
     expect(sql).toContain("raise exception 'existing auth user without a member profile'")
   })
+
+  it('adds a required constrained display name with a valid deterministic backfill', () => {
+    const sql = migration('20260812000000_add_member_profile_display_name.sql')
+
+    expect(sql).toContain("add column display_name text not null default '會員'")
+    expect(sql).toContain('char_length(display_name) between 2 and 30')
+    expect(sql).toContain("display_name ~ '^[a-za-z0-9一-龥]+$'")
+    expect(sql).toContain("alter column display_name set default '會員'")
+    expect(sql).not.toMatch(/display_name\s+(text\s+)?null/)
+  })
+
+  it('allows only owner-scoped profile updates without opening insert or delete', () => {
+    const sql = migration('20260812000000_add_member_profile_display_name.sql')
+
+    expect(sql).toContain('create policy "owners update profile"')
+    expect(sql).toContain('for update to authenticated')
+    expect(sql).toContain('using ((select auth.uid()) = user_id)')
+    expect(sql).toContain('with check ((select auth.uid()) = user_id)')
+    expect(sql).toMatch(/grant update \(username, username_normalized, display_name\)\s+on public\.member_profiles to authenticated/)
+    expect(sql).not.toMatch(/grant (insert|delete|all).*member_profiles/)
+
+    const original = migration('20260811000000_create_member_profiles.sql')
+    expect(original).toContain('username_normalized text not null unique')
+  })
 })

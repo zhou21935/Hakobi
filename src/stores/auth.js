@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { getSupabase } from '@/lib/supabase'
 import { authRedirectUrl } from '@/lib/supabase'
-import { validateEmail, validatePassword, validateUsername } from '@/domain/accountValidation'
+import { validateDisplayName, validateEmail, validatePassword, validateUsername } from '@/domain/accountValidation'
 
 const LOGIN_ERROR = '電子郵件或密碼不正確'
 const VERIFY_EMAIL_ERROR = '請先完成電子郵件驗證'
@@ -26,6 +26,8 @@ export const useAuthStore = defineStore('auth', () => {
   const profile = ref(null)
   const profileLoading = ref(false)
   const profileError = ref(null)
+  const profileSaving = ref(false)
+  const profileSaveError = ref(null)
   const recoverySession = ref(false)
   let subscription
   let sessionCleanup = () => {}
@@ -128,11 +130,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { data, error: queryError } = await getSupabase()
         .from('member_profiles')
-        .select('user_id, username')
+        .select('user_id, username, display_name')
         .eq('user_id', session.value.user.id)
         .single()
       if (queryError || !data) throw safeError('會員資料載入失敗，請重試', 'PROFILE_LOAD_FAILED')
-      profile.value = { userId: data.user_id, username: data.username }
+      profile.value = { userId: data.user_id, username: data.username, displayName: data.display_name }
       return profile.value
     } catch (caught) {
       profile.value = null
@@ -143,13 +145,52 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const updateProfile = async ({ username, displayName } = {}) => {
+    if (!session.value?.user?.id) throw safeError('會員資料儲存失敗，請重試', 'PROFILE_SAVE_FAILED')
+    const usernameResult = validateUsername(username)
+    const displayNameResult = validateDisplayName(displayName)
+    const validationError = usernameResult.error || displayNameResult.error
+    if (validationError) throw safeError(validationError, 'VALIDATION_ERROR')
+
+    profileSaving.value = true
+    profileSaveError.value = null
+    try {
+      const { data, error: updateError } = await getSupabase()
+        .from('member_profiles')
+        .update({
+          username: usernameResult.value,
+          username_normalized: usernameResult.normalized,
+          display_name: displayNameResult.value
+        })
+        .eq('user_id', session.value.user.id)
+        .select('user_id, username, display_name')
+        .single()
+      if (updateError?.code === '23505') throw safeError(USERNAME_TAKEN, 'USERNAME_TAKEN')
+      if (updateError || !data) throw safeError('會員資料儲存失敗，請重試', 'PROFILE_SAVE_FAILED')
+      profile.value = { userId: data.user_id, username: data.username, displayName: data.display_name }
+      return profile.value
+    } catch (caught) {
+      const mapped = caught?.code === 'USERNAME_TAKEN'
+        ? caught
+        : caught?.code === 'VALIDATION_ERROR'
+          ? caught
+          : safeError('會員資料儲存失敗，請重試', 'PROFILE_SAVE_FAILED')
+      profileSaveError.value = mapped.message
+      throw mapped
+    } finally {
+      profileSaving.value = false
+    }
+  }
+
   const initialize = async () => {
     if (initialized.value) return
     const supabase = getSupabase()
     subscription = supabase.auth.onAuthStateChange((event, nextSession) => {
+      const previousUserId = session.value?.user?.id
+      const nextUserId = nextSession?.user?.id
       session.value = nextSession
       recoverySession.value = event === 'PASSWORD_RECOVERY'
-      if (!nextSession) clearProfile()
+      if (!nextSession || previousUserId !== nextUserId) clearProfile()
     }).data.subscription
     const { data, error: sessionError } = await supabase.auth.getSession()
     if (sessionError) session.value = null
@@ -178,6 +219,8 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = null
     profileError.value = null
     profileLoading.value = false
+    profileSaveError.value = null
+    profileSaving.value = false
   }
   const setSessionCleanup = (cleanup) => {
     if (typeof cleanup !== 'function') throw new TypeError('Session cleanup must be a function')
@@ -187,9 +230,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     session, user, initialized, isSubmitting, error, isAuthenticated,
-    profile, profileLoading, profileError, recoverySession,
+    profile, profileLoading, profileError, profileSaving, profileSaveError, recoverySession,
     signIn, signUp, resendConfirmation, requestPasswordReset, updatePassword,
-    checkUsernameAvailability, loadProfile, clearProfile,
+    checkUsernameAvailability, loadProfile, updateProfile, clearProfile,
     initialize, signOut, clearSession, setSessionCleanup, dispose
   }
 })

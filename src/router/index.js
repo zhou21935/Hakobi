@@ -11,6 +11,7 @@ const Register = () => import('@/views/Register.vue')
 const VerifyEmail = () => import('@/views/VerifyEmail.vue')
 const ForgotPassword = () => import('@/views/ForgotPassword.vue')
 const ResetPassword = () => import('@/views/ResetPassword.vue')
+const Profile = () => import('@/views/Profile.vue')
 
 export const routes = [
   {
@@ -47,6 +48,12 @@ export const routes = [
     component: OrderList,
     meta: { title: '訂單', requiresAuth: true },
     beforeEnter: (to) => ['agent', 'parcel'].includes(to.params.category) ? true : { name: 'NotFound' }
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: Profile,
+    meta: { title: '個人資料', requiresAuth: true }
   },
   {
     path: '/:pathMatch(.*)*',

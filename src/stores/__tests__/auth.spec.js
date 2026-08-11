@@ -16,7 +16,11 @@ const rpc = vi.hoisted(() => vi.fn())
 const single = vi.hoisted(() => vi.fn())
 const eq = vi.hoisted(() => vi.fn(() => ({ single })))
 const select = vi.hoisted(() => vi.fn(() => ({ eq })))
-const from = vi.hoisted(() => vi.fn(() => ({ select })))
+const updateSingle = vi.hoisted(() => vi.fn())
+const updateSelect = vi.hoisted(() => vi.fn(() => ({ single: updateSingle })))
+const updateEq = vi.hoisted(() => vi.fn(() => ({ select: updateSelect })))
+const update = vi.hoisted(() => vi.fn(() => ({ eq: updateEq })))
+const from = vi.hoisted(() => vi.fn(() => ({ select, update })))
 
 vi.mock('@/lib/supabase', () => ({
   getSupabase: () => ({ auth, rpc, from }),
@@ -87,14 +91,64 @@ describe('auth store', () => {
 
   it('checks availability and loads only the owned profile', async () => {
     rpc.mockResolvedValue({ data: true, error: null })
-    single.mockResolvedValue({ data: { user_id: 'user-a', username: 'Hakobi' }, error: null })
+    single.mockResolvedValue({ data: { user_id: 'user-a', username: 'Hakobi', display_name: '王小明' }, error: null })
     const store = useAuthStore()
     store.session = { user: { id: 'user-a', email: 'a@example.com' } }
     await expect(store.checkUsernameAvailability('Hakobi')).resolves.toBe(true)
     await store.loadProfile()
     expect(rpc).toHaveBeenCalledWith('is_username_available', { candidate: 'Hakobi' })
     expect(eq).toHaveBeenCalledWith('user_id', 'user-a')
-    expect(store.profile).toEqual({ userId: 'user-a', username: 'Hakobi' })
+    expect(select).toHaveBeenCalledWith('user_id, username, display_name')
+    expect(store.profile).toEqual({ userId: 'user-a', username: 'Hakobi', displayName: '王小明' })
+  })
+
+  it('updates only editable owned profile fields and confirms returned state', async () => {
+    updateSingle.mockResolvedValue({
+      data: { user_id: 'user-a', username: 'Hakobi_02', display_name: '王小明' },
+      error: null
+    })
+    const store = useAuthStore()
+    store.session = { user: { id: 'user-a', email: 'owner@example.com' } }
+    store.profile = { userId: 'user-a', username: 'Hakobi_01', displayName: '會員' }
+
+    await store.updateProfile({ username: 'Hakobi_02', displayName: '王小明', email: 'attacker@example.com', userId: 'user-b' })
+
+    expect(update).toHaveBeenCalledWith({
+      username: 'Hakobi_02',
+      username_normalized: 'hakobi_02',
+      display_name: '王小明'
+    })
+    expect(updateEq).toHaveBeenCalledWith('user_id', 'user-a')
+    expect(updateSelect).toHaveBeenCalledWith('user_id, username, display_name')
+    expect(store.profile).toEqual({ userId: 'user-a', username: 'Hakobi_02', displayName: '王小明' })
+  })
+
+  it('rejects invalid profile fields without sending an update', async () => {
+    const store = useAuthStore()
+    store.session = { user: { id: 'user-a' } }
+
+    await expect(store.updateProfile({ username: 'Hakobi_02', displayName: '王 小明' })).rejects.toThrow('顯示名稱只能包含中文、英文字母及數字')
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('maps a profile username collision and preserves confirmed state', async () => {
+    updateSingle.mockResolvedValue({ data: null, error: { code: '23505', message: 'member_profiles_username_normalized_key' } })
+    const store = useAuthStore()
+    store.session = { user: { id: 'user-a' } }
+    store.profile = { userId: 'user-a', username: 'Hakobi_01', displayName: '會員' }
+
+    await expect(store.updateProfile({ username: 'Hakobi_02', displayName: '王小明' })).rejects.toThrow('此名稱已被使用')
+    expect(store.profile).toEqual({ userId: 'user-a', username: 'Hakobi_01', displayName: '會員' })
+  })
+
+  it('uses a safe profile save error and preserves confirmed state', async () => {
+    updateSingle.mockResolvedValue({ data: null, error: { code: 'unexpected', message: 'secret database detail' } })
+    const store = useAuthStore()
+    store.session = { user: { id: 'user-a' } }
+    store.profile = { userId: 'user-a', username: 'Hakobi_01', displayName: '會員' }
+
+    await expect(store.updateProfile({ username: 'Hakobi_02', displayName: '王小明' })).rejects.toThrow('會員資料儲存失敗，請重試')
+    expect(store.profile).toEqual({ userId: 'user-a', username: 'Hakobi_01', displayName: '會員' })
   })
 
   it('uses neutral email flows and updates a recovery password once', async () => {
@@ -142,6 +196,18 @@ describe('auth store', () => {
     const listener = auth.onAuthStateChange.mock.calls[0][0]
     listener('PASSWORD_RECOVERY', { user: { id: 'user-a' } })
     expect(store.recoverySession).toBe(true)
+  })
+
+  it('clears the previous profile when the authenticated user changes', async () => {
+    auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'user-a' } } }, error: null })
+    const store = useAuthStore()
+    await store.initialize()
+    store.profile = { userId: 'user-a', username: 'Hakobi', displayName: '會員' }
+
+    const listener = auth.onAuthStateChange.mock.calls[0][0]
+    listener('SIGNED_IN', { user: { id: 'user-b' } })
+
+    expect(store.profile).toBeNull()
   })
 
   it('signs out and runs user-scoped cleanup', async () => {
