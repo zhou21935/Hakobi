@@ -5,9 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:backend": "npm --prefix backend run dev",
     "build": "vite build",
+    "build:backend": "npm --prefix backend run build",
+    "build:all": "npm run build && npm run build:backend",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:backend": "npm --prefix backend test",
+    "test:all": "npm test && npm run test:backend",
+    "typecheck:backend": "npm --prefix backend run typecheck",
     "verify:deployment": "node scripts/verify-supabase-deployment.mjs"
   },
   "dependencies": {

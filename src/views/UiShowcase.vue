@@ -103,7 +103,7 @@ import Input from '@/components/ui/Input.vue'
 import Table from '@/components/ui/Table.vue'
 import Modal from '@/components/ui/Modal.vue'
 import Select from '@/components/ui/Select.vue'
-import StatusBadge from '@/components/StatusBadge.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 
 const normalInput = ref('')
 const errorInput = ref('')

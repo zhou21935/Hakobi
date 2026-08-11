@@ -1,6 +1,6 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest'
 import { generateKeyPair, SignJWT } from 'jose'
-import { buildApp } from './app.js'
+import { buildApp } from '../../src/app.js'
 const config={supabaseUrl:'https://test.supabase.co',databaseUrl:'postgresql://test:test@localhost/test',corsOrigin:'http://localhost:5173',port:3000}
 const apps:Array<Awaited<ReturnType<typeof buildApp>>>=[]
 afterEach(async()=>{await Promise.all(apps.splice(0).map(app=>app.close()))})

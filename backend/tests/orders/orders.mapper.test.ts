@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createOrderSchema, patchOrderSchema } from './orders.schema.js'
-import { toColumns, toOrder } from './orders.mapper.js'
+import { createOrderSchema, patchOrderSchema } from '../../src/modules/orders/orders.schema.js'
+import { toColumns, toOrder } from '../../src/modules/orders/orders.mapper.js'
 describe('order contract', () => {
  it('defaults fields and rejects identity', () => { const input={category:'agent',name:' Book ',amount:120.5,productCategories:['book']}; expect(createOrderSchema.parse(input)).toMatchObject({name:'Book',currency:'TWD',shippingMethod:'',trackingNumber:''}); expect(()=>createOrderSchema.parse({...input,userId:crypto.randomUUID()})).toThrow() })
  it('rejects invalid patches', () => { expect(()=>patchOrderSchema.parse({})).toThrow(); expect(()=>patchOrderSchema.parse({id:crypto.randomUUID()})).toThrow() })

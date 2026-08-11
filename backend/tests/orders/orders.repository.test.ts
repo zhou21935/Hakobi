@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { OrdersRepository } from './orders.repository.js'
+import { OrdersRepository } from '../../src/modules/orders/orders.repository.js'
 describe('repository ownership', () => { it('filters operations by verified user', async()=>{ const query=vi.fn().mockResolvedValue({rows:[],rowCount:0}); const repo=new OrdersRepository({query} as never); await repo.list('user-a'); await repo.find('id-a','user-a'); await repo.delete('id-a','user-a'); expect(query.mock.calls[0][0]).toContain('user_id = $1'); expect(query.mock.calls[1]).toEqual([expect.stringContaining('id = $1 AND user_id = $2'),['id-a','user-a']]); expect(query.mock.calls[2]).toEqual([expect.stringContaining('id = $1 AND user_id = $2'),['id-a','user-a']]) }) })
 
 describe('repository logistics', () => {
