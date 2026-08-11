@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 const replace = vi.fn()
@@ -9,6 +9,18 @@ vi.mock('@/stores/auth', () => ({ useAuthStore: () => store }))
 import VerifyEmail from '@/views/VerifyEmail.vue'
 
 describe('VerifyEmail view', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    store.isAuthenticated = false
+    route.query = { email: 'new@example.com' }
+  })
+
+  it('navigates an authenticated confirmed member to the order overview', async () => {
+    store.isAuthenticated = true
+    mount(VerifyEmail)
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith('/'))
+  })
+
   it('resends with a neutral result', async () => {
     const wrapper = mount(VerifyEmail)
     await wrapper.get('form').trigger('submit')

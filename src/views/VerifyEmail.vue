@@ -2,7 +2,7 @@
   <main class="min-h-screen flex items-center justify-center p-4 bg-page">
     <section class="w-full max-w-md rounded-card bg-white border border-card-border p-6 space-y-4 shadow-card">
       <h1 class="text-2xl font-heading font-bold text-ink">驗證電子郵件</h1>
-      <p v-if="auth.isAuthenticated" role="status" class="text-sm text-green-700">Email 驗證成功，正在前往訂單頁面。</p>
+      <p v-if="auth.isAuthenticated" role="status" class="text-sm text-green-700">Email 驗證成功，正在前往訂單總覽。</p>
       <template v-else>
         <p class="text-sm text-ink">驗證信已寄出。請點擊信件中的連結完成驗證。</p>
         <p v-if="message" role="status" class="text-sm" :class="failed ? 'text-red-700' : 'text-green-700'">{{ message }}</p>
@@ -34,7 +34,7 @@ const failed = ref(!!callbackError)
 const sending = ref(false)
 
 onMounted(async () => {
-  if (auth.isAuthenticated) await router.replace('/orders')
+  if (auth.isAuthenticated) await router.replace('/')
   else if (callbackError) await router.replace({ name: 'VerifyEmail', query: email.value ? { email: email.value } : {} })
 })
 

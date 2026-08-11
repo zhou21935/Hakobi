@@ -50,7 +50,7 @@ const submit = async () => {
     password.value = ''
     confirmation.value = ''
     message.value = '密碼已更新。'
-    await router.replace('/orders')
+    await router.replace('/')
   } catch (caught) {
     failed.value = true
     message.value = caught?.message || '密碼更新失敗，請重新申請連結'

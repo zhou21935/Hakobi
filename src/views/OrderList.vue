@@ -2,7 +2,6 @@
   <div class="p-4 md:p-8 space-y-6">
     <div class="max-w-6xl">
       <h1 class="text-2xl md:text-4xl font-heading font-bold text-ink mb-2">{{ categoryLabel }}</h1>
-      <p class="text-base md:text-lg text-ink-muted">管理{{ categoryLabel }}分類的訂單</p>
     </div>
 
     <div class="max-w-6xl">

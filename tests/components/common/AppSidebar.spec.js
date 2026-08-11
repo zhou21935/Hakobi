@@ -4,7 +4,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import AppSidebar from '@/components/common/AppSidebar.vue'
 
 const routes = [
-  { path: '/', name: 'Dashboard', component: { template: '<div />' } },
+  { path: '/', name: 'OrderOverview', component: { template: '<div />' } },
   { path: '/orders/:category', name: 'OrderList', component: { template: '<div />' } },
   { path: '/profile', name: 'Profile', component: { template: '<div />' } }
 ]
@@ -31,7 +31,9 @@ describe('AppSidebar category navigation', () => {
   it('omits the development-only UI showcase destination', () => {
     const wrapper = mount(AppSidebar, { global: { plugins: [router] } })
     expect(wrapper.find('a[href="/ui-showcase"]').exists()).toBe(false)
-    expect(wrapper.find('a[href="/orders"]').exists()).toBe(true)
+    expect(wrapper.find('a[href="/"]').text()).toContain('總覽')
+    expect(wrapper.find('a[href="/orders"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('全部訂單')
   })
 
   it('renders personal profile in a member section after order categories', async () => {

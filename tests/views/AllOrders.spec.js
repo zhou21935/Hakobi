@@ -55,6 +55,11 @@ describe('AllOrders details integration', () => {
 })
 
 describe('AllOrders create integration', () => {
+  it('renders the consolidated order overview heading', () => {
+    const wrapper = mount(AllOrders)
+    expect(wrapper.get('h1').text()).toBe('訂單總覽')
+  })
+
   it('places filters and the compact create action in a responsive toolbar before order content', () => {
     const wrapper = mount(AllOrders, { attachTo: document.body })
     const toolbar = wrapper.get('[data-testid="order-toolbar"]')

@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-const Dashboard = () => import('@/views/Dashboard.vue')
 const OrderList = () => import('@/views/OrderList.vue')
 const AllOrders = () => import('@/views/AllOrders.vue')
 const UiShowcase = () => import('@/views/UiShowcase.vue')
@@ -26,9 +25,9 @@ export const routes = [
   { path: '/reset-password', name: 'ResetPassword', component: ResetPassword, meta: { title: '重設密碼', public: true } },
   {
     path: '/',
-    name: 'Dashboard',
-    component: Dashboard,
-    meta: { title: '總覽', requiresAuth: true }
+    name: 'OrderOverview',
+    component: AllOrders,
+    meta: { title: '訂單總覽', requiresAuth: true }
   },
   {
     path: '/ui-showcase',
@@ -38,9 +37,7 @@ export const routes = [
   },
   {
     path: '/orders',
-    name: 'AllOrders',
-    component: AllOrders,
-    meta: { title: '全部訂單', requiresAuth: true }
+    redirect: { name: 'OrderOverview' }
   },
   {
     path: '/orders/:category',
@@ -74,7 +71,7 @@ export const createAuthGuard = (pinia) => async (to) => {
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'Login', query: { redirect: to.fullPath } }
   }
-  if ((to.name === 'Login' || to.meta.guestOnly) && auth.isAuthenticated) return { name: 'AllOrders' }
+  if ((to.name === 'Login' || to.meta.guestOnly) && auth.isAuthenticated) return { name: 'OrderOverview' }
   return true
 }
 

@@ -55,11 +55,21 @@ describe('authentication route guard', () => {
     authState.initialized = true
     authState.isAuthenticated = true
     const guard = createAuthGuard(createPinia())
-    expect(await guard({ name: 'Register', meta: { public: true, guestOnly: true }, fullPath: '/register' })).toEqual({ name: 'AllOrders' })
+    expect(await guard({ name: 'Register', meta: { public: true, guestOnly: true }, fullPath: '/register' })).toEqual({ name: 'OrderOverview' })
   })
 })
 
 describe('route completeness', () => {
+  it('uses the all-orders behavior at home and redirects the legacy orders path', () => {
+    expect(routes.find(({ name }) => name === 'OrderOverview')).toMatchObject({
+      path: '/',
+      meta: { title: '訂單總覽', requiresAuth: true }
+    })
+    expect(routes.find(({ path }) => path === '/orders')).toMatchObject({
+      redirect: { name: 'OrderOverview' }
+    })
+  })
+
   it('accepts only agent and parcel category routes and provides a catch-all Not Found route', () => {
     const categoryRoute = routes.find(({ name }) => name === 'OrderList')
     expect(categoryRoute.beforeEnter({ params: { category: 'agent' } })).toBe(true)

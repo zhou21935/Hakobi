@@ -20,7 +20,7 @@ describe('Login view', () => {
     route.query = {}
   })
 
-  it('navigates to orders after successful sign in', async () => {
+  it('navigates to the order overview after successful sign in', async () => {
     signIn.mockResolvedValue(undefined)
     const wrapper = mount(Login)
 
@@ -30,7 +30,7 @@ describe('Login view', () => {
     await Promise.resolve()
 
     expect(signIn).toHaveBeenCalledWith('owner@example.com', 'correct-password')
-    expect(replace).toHaveBeenCalledWith('/orders')
+    expect(replace).toHaveBeenCalledWith('/')
   })
 
   it('stays on login after rejected credentials', async () => {
@@ -59,6 +59,6 @@ describe('Login view', () => {
     route.query = { redirect: '//evil.example' }
     await wrapper.get('form').trigger('submit')
     await Promise.resolve()
-    expect(replace).toHaveBeenLastCalledWith('/orders')
+    expect(replace).toHaveBeenLastCalledWith('/')
   })
 })

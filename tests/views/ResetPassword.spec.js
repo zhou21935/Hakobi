@@ -20,6 +20,6 @@ describe('ResetPassword view', () => {
     await fields[1].setValue('newpass2026')
     await wrapper.get('form').trigger('submit')
     await vi.waitFor(() => expect(updatePassword).toHaveBeenCalledOnce())
-    expect(replace).toHaveBeenCalledWith('/orders')
+    expect(replace).toHaveBeenCalledWith('/')
   })
 })

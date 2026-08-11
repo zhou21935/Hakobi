@@ -36,6 +36,21 @@ beforeEach(async () => {
 const mountOrderList = () => mount(OrderList, { global: { plugins: [router] }, attachTo: document.body })
 
 describe('OrderList category route sync', () => {
+  it('shows only the category heading without the explanatory subtitle', async () => {
+    const wrapper = mountOrderList()
+
+    expect(wrapper.get('h1').text()).toBe('海外代購')
+    expect(wrapper.text()).not.toContain('管理海外代購分類的訂單')
+
+    await router.push('/orders/parcel')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('h1').text()).toBe('集運包裹')
+    expect(wrapper.text()).not.toContain('管理集運包裹分類的訂單')
+
+    wrapper.unmount()
+  })
+
   it('places filters and the compact create action in a responsive toolbar before order content', () => {
     const wrapper = mountOrderList()
     const toolbar = wrapper.get('[data-testid="order-toolbar"]')

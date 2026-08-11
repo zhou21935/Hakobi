@@ -4,7 +4,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 const state = vi.hoisted(() => ({
   auth: { initialized: true, isAuthenticated: true, profile: null, profileLoading: false, profileError: null, user: { email: 'owner@example.com' }, loadProfile: vi.fn(), signOut: vi.fn() },
   orders: { initialized: false, isLoading: false, loadOrders: vi.fn(), finalizePendingDelete: vi.fn() },
-  route: { meta: { requiresAuth: true }, name: 'Dashboard' },
+  route: { meta: { requiresAuth: true }, name: 'OrderOverview' },
   router: { replace: vi.fn() }
 }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => state.auth }))
@@ -26,7 +26,7 @@ describe('application order initialization', () => {
     state.auth.user = { email: 'owner@example.com' }
     state.auth.loadProfile.mockReset().mockResolvedValue(undefined)
     state.route.meta = { requiresAuth: true }
-    state.route.name = 'Dashboard'
+    state.route.name = 'OrderOverview'
   })
 
   it('loads orders when the dashboard is the first protected view and does not duplicate a completed load', async () => {

@@ -1,8 +1,7 @@
 <template>
   <div class="p-4 md:p-8 space-y-6">
     <div class="max-w-6xl">
-      <h1 class="text-2xl md:text-4xl font-heading font-bold text-ink mb-2">全部訂單</h1>
-      <p class="text-base md:text-lg text-ink-muted">跨分類檢視所有訂單</p>
+      <h1 class="text-2xl md:text-4xl font-heading font-bold text-ink">訂單總覽</h1>
     </div>
 
     <div class="max-w-6xl">

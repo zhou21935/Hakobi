@@ -42,7 +42,7 @@ const submit = async () => {
     await auth.signIn(email.value, password.value)
     const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') && !route.query.redirect.startsWith('//')
       ? route.query.redirect
-      : '/orders'
+      : '/'
     await router.replace(redirect)
   } catch (error) {
     message.value = error.message
