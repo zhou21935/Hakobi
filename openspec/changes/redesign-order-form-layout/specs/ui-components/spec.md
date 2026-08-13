@@ -21,3 +21,14 @@ The shared Modal component SHALL provide an explicit interface for callers to cu
 - **WHEN** a customized Modal is closed by Escape, overlay click, or its model update
 - **THEN** it emits the same close and model-update events as before
 - **AND** document and body scrolling are restored to their prior values
+
+### Requirement: Order form controls match the reference surfaces without recoloring actions
+
+The order form SHALL apply the reference design's non-action surface colors, borders, radii, control heights, and spacing to its dialog, section cards, text inputs, selects, date controls, checkbox chips, textarea, and attachment area. Cancel and submit action buttons MUST retain their existing Hakobi variants and colors. Any shared control customization MUST be opt-in so callers outside the order form preserve their current appearance.
+
+#### Scenario: Reference surfaces and existing action colors coexist
+
+- **WHEN** the order form is displayed on phone, tablet, or desktop
+- **THEN** its dialog, sections, and controls use the reference surface styling consistently
+- **AND** cancel and submit retain their existing Hakobi button variants
+- **AND** an Input or Select outside the order form retains its default styling

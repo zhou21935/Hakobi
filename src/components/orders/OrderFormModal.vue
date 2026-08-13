@@ -3,78 +3,87 @@
     :model-value="modelValue"
     :title="isEditMode ? '編輯訂單' : '新增訂單'"
     overlay-class="items-end justify-center p-0 sm:items-center sm:p-6"
-    panel-class="h-[92dvh] max-h-[92dvh] rounded-t-[28px] rounded-b-none sm:h-auto sm:max-h-[88dvh] sm:max-w-[560px] sm:rounded-card lg:max-w-[880px]"
-    header-class="border-b border-card-border bg-white px-5 py-4 sm:bg-sidebar-from sm:px-[30px] sm:py-5"
-    content-class="bg-page-bg p-4 sm:bg-white sm:p-5 lg:px-[30px] lg:py-6"
+    panel-class="order-form-dialog h-[92dvh] max-h-[92dvh] rounded-t-[28px] rounded-b-none bg-[#faf8fc] sm:h-auto sm:max-h-[88dvh] sm:max-w-[560px] sm:rounded-[28px] lg:max-w-[880px]"
+    header-class="border-b border-[#ece6f2] bg-[#f7f4fa] px-5 py-4 sm:px-[30px] sm:py-5"
+    content-class="bg-[#faf8fc] p-4 sm:p-5 lg:px-[30px] lg:py-6"
     footer-class="border-t border-card-border bg-white px-4 pt-3.5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-[30px] sm:py-4"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <div class="flex flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:gap-[18px]">
-      <section data-testid="order-section-product" class="overflow-hidden rounded-2xl border border-card-border bg-white lg:col-span-2">
-        <div class="flex items-center gap-2.5 border-b border-card-border bg-sidebar-from px-4 py-3">
+    <div class="order-form-reference-surfaces flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-[18px]">
+      <section data-testid="order-section-product" class="order-form-section overflow-hidden rounded-[20px] border border-[#ece6f2] bg-white lg:col-span-2">
+        <div class="flex items-center gap-2.5 border-b border-[#ece6f2] bg-[#f7f4fa] px-5 py-4">
           <span class="h-1.5 w-1.5 rounded-full bg-primary-from"></span>
           <h3 class="text-sm font-bold text-ink">商品</h3>
           <span class="text-[11px] text-ink-muted">PRODUCT</span>
         </div>
         <div class="flex flex-col gap-3.5 p-4 lg:grid lg:grid-cols-3 lg:p-[18px]">
           <div v-if="showCategorySelect">
-            <Select v-model="form.category" label="訂單分類" placeholder="請選擇訂單分類" test-id="order-category" :options="categoryOptions" />
+            <Select v-model="form.category" class="order-form-control" label="訂單分類" placeholder="請選擇訂單分類" test-id="order-category" :options="categoryOptions" />
             <p v-if="categoryError" class="mt-1 text-sm text-red-600">{{ categoryError }}</p>
           </div>
-          <Input v-model="form.name" label="商品名稱" placeholder="請輸入商品名稱" :error="nameError" />
-          <Input v-model="form.platform" label="購買平台" placeholder="例如 Amazon" />
+          <Input v-model="form.name" class="order-form-control" label="商品名稱" placeholder="請輸入商品名稱" :error="nameError" />
+          <Input v-model="form.platform" class="order-form-control" label="購買平台" placeholder="例如 Amazon" />
           <div class="lg:col-span-2">
-            <Input v-model="form.productUrl" label="商品連結" placeholder="https://" :error="productUrlError" />
+            <Input v-model="form.productUrl" class="order-form-control" label="商品連結" placeholder="https://" :error="productUrlError" />
           </div>
-          <MultiSelect v-model="form.productCategories" label="商品分類" placeholder="請選擇商品分類" :options="productCategoryOptions" :error="productCategoriesError" />
+          <MultiSelect v-model="form.productCategories" class="order-form-control" label="商品分類" placeholder="請選擇商品分類" :options="productCategoryOptions" :error="productCategoriesError" />
           <div class="grid grid-cols-[1.3fr_0.8fr] gap-2.5 lg:col-span-2">
-            <Input v-model="form.amount" type="number" label="金額" placeholder="0" :error="amountError" />
-            <Select v-model="form.currency" label="幣別" :options="currencyOptions" />
+            <Input v-model="form.amount" class="order-form-control" type="number" label="金額" placeholder="0" :error="amountError" />
+            <Select v-model="form.currency" class="order-form-control" label="幣別" :options="currencyOptions" />
           </div>
-          <Input data-testid="order-number" v-model="orderNumber" label="訂單號碼" placeholder="例如 114-2938471-0038" />
-          <div class="flex items-end gap-3">
-            <Checkbox v-model="form.isPaid" label="已付款" />
-            <Checkbox v-model="form.isPreorder" label="預購商品" />
+          <Input data-testid="order-number" v-model="orderNumber" class="order-form-control" label="訂單號碼" placeholder="例如 114-2938471-0038" />
+          <div class="flex flex-wrap items-end gap-3">
+            <Checkbox v-model="form.isPaid" class="order-form-control order-form-checkbox" label="已付款" />
+            <Checkbox v-model="form.isPreorder" class="order-form-control order-form-checkbox" label="預購商品" />
           </div>
         </div>
       </section>
 
-      <section data-testid="order-section-cargo" class="overflow-hidden rounded-2xl border border-card-border bg-white">
-        <div class="flex items-center gap-2.5 border-b border-card-border bg-sidebar-from px-4 py-3">
+      <section data-testid="order-section-cargo" class="order-form-section overflow-hidden rounded-[20px] border border-[#ece6f2] bg-white">
+        <div class="flex items-center gap-2.5 border-b border-[#ece6f2] bg-[#f7f4fa] px-5 py-4">
           <span class="h-1.5 w-1.5 rounded-full bg-primary-from"></span>
           <h3 class="text-sm font-bold text-ink">貨物</h3>
           <span class="text-[11px] text-ink-muted">CARGO</span>
         </div>
         <div class="grid grid-cols-1 gap-3.5 p-4 sm:grid-cols-2 lg:p-[18px]">
-          <Input v-model="form.orderDate" type="date" label="下單日期" />
-          <Select v-model="form.status" label="貨物狀態" :options="statusOptions" />
-          <Input v-model="form.estimatedShipDate" type="date" label="預計出貨日期" />
-          <Input v-model="form.estimatedArrivalDate" type="date" label="預計到貨日期" />
+          <Input v-model="form.orderDate" class="order-form-control" type="date" label="下單日期" />
+          <Select v-model="form.status" class="order-form-control" label="貨物狀態" :options="statusOptions" />
+          <Input v-model="form.estimatedShipDate" class="order-form-control" type="date" label="預計出貨日期" />
+          <Input v-model="form.estimatedArrivalDate" class="order-form-control" type="date" label="預計到貨日期" />
         </div>
       </section>
 
-      <section data-testid="order-section-shipping" class="overflow-hidden rounded-2xl border border-card-border bg-white">
-        <div class="flex items-center gap-2.5 border-b border-card-border bg-sidebar-from px-4 py-3">
+      <section data-testid="order-section-shipping" class="order-form-section overflow-hidden rounded-[20px] border border-[#ece6f2] bg-white">
+        <div class="flex items-center gap-2.5 border-b border-[#ece6f2] bg-[#f7f4fa] px-5 py-4">
           <span class="h-1.5 w-1.5 rounded-full bg-primary-from"></span>
           <h3 class="text-sm font-bold text-ink">物流</h3>
           <span class="text-[11px] text-ink-muted">SHIPPING</span>
         </div>
         <div class="flex flex-col gap-3.5 p-4 lg:p-[18px]">
-          <Input v-model="form.shippingMethod" label="物流方式" placeholder="例如 日本郵便 EMS" :maxlength="2000" />
-          <Input v-model="form.trackingNumber" label="追蹤號碼" placeholder="例如 EN123456789JP" :maxlength="2000" />
+          <Input v-model="form.shippingMethod" class="order-form-control" label="物流方式" placeholder="例如 日本郵便 EMS" :maxlength="2000" />
+          <Input v-model="form.trackingNumber" class="order-form-control" label="追蹤號碼" placeholder="例如 EN123456789JP" :maxlength="2000" />
         </div>
       </section>
 
-      <section data-testid="order-section-notes" class="overflow-hidden rounded-2xl border border-card-border bg-white lg:col-span-2">
-        <div class="flex items-center gap-2.5 border-b border-card-border bg-sidebar-from px-4 py-3">
+      <section data-testid="order-section-notes" class="order-form-section overflow-hidden rounded-[20px] border border-[#ece6f2] bg-white lg:col-span-2">
+        <div class="flex items-center gap-2.5 border-b border-[#ece6f2] bg-[#f7f4fa] px-5 py-4">
           <span class="h-1.5 w-1.5 rounded-full bg-primary-from"></span>
           <h3 class="text-sm font-bold text-ink">備註</h3>
           <span class="text-[11px] text-ink-muted">NOTES</span>
         </div>
         <div class="flex flex-col gap-3 p-4 lg:grid lg:grid-cols-[1.3fr_1fr] lg:gap-4 lg:p-[18px]">
-          <Input v-model="form.notes" label="備註內容" placeholder="選填：尺寸、賣家回覆、拆單資訊…" />
+          <div>
+            <label for="order-notes" class="mb-1.5 block text-sm font-medium text-ink">備註內容</label>
+            <textarea
+              id="order-notes"
+              v-model="form.notes"
+              data-testid="order-notes"
+              placeholder="選填：尺寸、賣家回覆、拆單資訊…"
+              class="order-form-textarea min-h-[120px] w-full resize-y rounded-2xl border border-[#e2dae9] bg-white px-4 py-3.5 text-sm text-ink transition-colors focus:border-primary-from focus:outline-none focus:ring-2 focus:ring-primary-to/30 focus:ring-offset-0 lg:min-h-[104px]"
+            ></textarea>
+          </div>
           <div class="flex flex-col gap-2.5">
-            <button type="button" class="flex items-center gap-3 rounded-xl border border-dashed border-card-border-accent bg-page-bg p-3.5 text-left text-ink transition-colors hover:border-primary-from" @click="fileInput?.click()">
+            <button data-testid="attachment-picker" type="button" class="order-form-attachment flex min-h-16 items-center gap-3 rounded-2xl border border-dashed border-[#d8cce3] bg-[#faf8fc] p-3.5 text-left text-ink transition-colors hover:border-primary-from" @click="fileInput?.click()">
               <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-accentcard-to text-primary-from">＋</span>
               <span>
                 <span class="block text-[13px] font-medium">選擇附件</span>
@@ -268,3 +277,35 @@ const handleSubmit = () => {
   })
 }
 </script>
+
+<style scoped>
+.order-form-control :deep(input:not([type='checkbox']):not([type='file'])),
+.order-form-control :deep(select),
+.order-form-control :deep(button) {
+  min-height: 3.5rem;
+  border-radius: 1rem;
+  border-color: #e2dae9;
+  background-color: #fff;
+  padding: 0.875rem 1rem;
+}
+
+.order-form-checkbox {
+  min-height: 3.5rem;
+  border: 1px solid #e2dae9;
+  border-radius: 9999px;
+  background-color: #fff;
+  padding: 0.75rem 1rem;
+}
+
+.order-form-section :deep(label) {
+  margin-bottom: 0.5rem;
+}
+
+@media (min-width: 1024px) {
+  .order-form-control :deep(input:not([type='checkbox']):not([type='file'])),
+  .order-form-control :deep(select),
+  .order-form-control :deep(button) {
+    min-height: 3.25rem;
+  }
+}
+</style>

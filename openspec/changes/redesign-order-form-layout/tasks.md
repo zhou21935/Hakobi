@@ -19,3 +19,11 @@
 - [x] 4.1 以 TDD 為「Order form adapts across phone, tablet, and desktop viewports」新增 layout contract 測試，鎖定 `<640px` bottom sheet／單欄／固定 footer、`640–1023px` 560px 置中／選定雙欄、`≥1024px` 880px／商品與備註跨欄／貨物與物流並排，且無重複 inputs；驗證目標：responsive class assertions 在版型實作前失敗。
 - [x] 4.2 串接 responsive Modal 介面與表單 grid classes，完成手機、平板、電腦版型，確保內容獨立捲動、header/footer 可操作且無水平溢位；驗證目標：layout contract 測試通過，並以 390px、768px、1280px 手動檢查新增與編輯畫面。
 - [x] 4.3 執行完整回歸與 production build，確認本 change 只影響前端版型與元件內暫存互動；驗證目標：`npm test`、`npm run build` 成功，`git diff -- src/stores/orders.js src/services/ordersApi.js backend supabase` 無輸出，且依 Implementation Contract 逐項人工驗收通過。
+
+## 5. 備註多行輸入與參考欄位外觀
+
+- [x] 5.1 以 TDD 為「Order notes support visible multiline editing」新增失敗測試，驗證備註 control 是具多行最小高度的 textarea，輸入 `第一行\n第二行` 後 submit payload 的 `notes` 原樣保留換行；驗證目標：`tests/components/orders/OrderFormModal.spec.js` 新案例在實作前因仍為單行 input 而失敗。
+- [x] 5.2 實作設計決策「備註使用可換行的多行輸入」，以單一 textarea 取代備註 `Input`，手機／平板最小高度 120px、電腦最小高度 104px，維持既有 `notes: string` payload；驗證目標：多行輸入測試與既有 submit／edit tests 通過。
+- [x] 5.3 以 TDD 為「Order form controls match the reference surfaces without recoloring actions」新增失敗的外觀 contract 測試，鎖定 dialog、section、Input、Select、date、MultiSelect、Checkbox、textarea、attachment 的參考底色／邊框／圓角／高度／間距 class，以及取消／送出仍使用現有 Button variants；驗證目標：`OrderFormModal.spec.js` 與必要的 UI component tests 在外觀覆寫前失敗。
+- [x] 5.4 實作設計決策「非按鈕表面依參考設計且按鈕維持品牌色」，以訂單表單 opt-in class interface 或 scoped styling 統一四區塊內 controls，避免改變其他頁面共用元件預設；驗證目標：外觀 contract 與共用元件回歸測試通過，並以使用者提供的桌機與手機截圖逐項比對。
+- [x] 5.5 執行完整回歸與 production build，確認只新增前端樣式與 notes textarea 行為，store、API、後端、資料庫仍無變更；驗證目標：`npm test`、`npm run build` 成功，且 `git diff -- src/stores/orders.js src/services/ordersApi.js backend supabase` 無輸出。

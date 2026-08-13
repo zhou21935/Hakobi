@@ -256,6 +256,52 @@ describe('OrderFormModal frontend-only future fields', () => {
   })
 })
 
+describe('OrderFormModal multiline notes', () => {
+  it('uses a visible multiline textarea and preserves line breaks in submit', async () => {
+    const wrapper = mountForm()
+    await fillRequiredFields()
+    await selectProductCategories(['周邊'])
+    const notes = body().find('[data-testid="order-notes"]')
+    expect(notes.element.tagName).toBe('TEXTAREA')
+    expect(notes.attributes('class')).toContain('min-h-[120px]')
+    expect(notes.attributes('class')).toContain('lg:min-h-[104px]')
+    await notes.setValue('第一行\n第二行')
+    await submitForm()
+    expect(wrapper.emitted('submit').at(-1)[0].notes).toBe('第一行\n第二行')
+    wrapper.unmount()
+  })
+})
+
+describe('OrderFormModal reference surfaces', () => {
+  it('opts every non-action control into the reference surface while preserving button variants', () => {
+    const wrapper = mountForm()
+    expect(body().find('[data-testid="modal-panel"]').attributes('class')).toContain('order-form-dialog')
+    expect(body().find('[data-testid="modal-header"]').attributes('class')).toContain('bg-[#f7f4fa]')
+    expect(body().find('[data-testid="modal-content"]').attributes('class')).toContain('bg-[#faf8fc]')
+
+    const sections = body().findAll('[data-testid^="order-section-"]')
+    expect(sections).toHaveLength(4)
+    sections.forEach((section) => expect(section.attributes('class')).toContain('order-form-section'))
+
+    const controls = body().findAll('.order-form-control')
+    expect(controls.length).toBeGreaterThan(10)
+    expect(controls.some((control) => control.find('input[type="date"]').exists())).toBe(true)
+    expect(controls.some((control) => control.find('select').exists())).toBe(true)
+    expect(controls.some((control) => control.find('button').exists())).toBe(true)
+    expect(controls.some((control) => control.find('input[type="checkbox"]').exists())).toBe(true)
+    expect(body().find('[data-testid="order-notes"]').attributes('class')).toContain('order-form-textarea')
+    expect(body().find('[data-testid="attachment-picker"]').attributes('class')).toContain('order-form-attachment')
+
+    const cancel = body().findAll('button').find((button) => button.text() === '取消')
+    const submit = body().findAll('button').find((button) => button.text() === '送出')
+    expect(cancel.attributes('class')).toContain('bg-white')
+    expect(cancel.attributes('class')).toContain('border-card-border')
+    expect(submit.attributes('class')).toContain('from-primary-from')
+    expect(submit.attributes('class')).toContain('to-primary-to')
+    wrapper.unmount()
+  })
+})
+
 describe('OrderFormModal existing name/amount validation is unaffected', () => {
   it('blocks submission and shows an error when product name is blank', async () => {
     const wrapper = mountForm()

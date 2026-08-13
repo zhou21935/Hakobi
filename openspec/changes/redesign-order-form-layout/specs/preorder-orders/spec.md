@@ -39,3 +39,14 @@ The order create and edit form SHALL present existing controls in four labelled 
 - **WHEN** the form closes and opens again in create or edit mode
 - **THEN** the order-number input is empty
 - **AND** the attachment list is empty
+
+### Requirement: Order notes support visible multiline editing
+
+The order create and edit form SHALL render Notes as a multiline textarea with enough minimum height to display multiple lines. The textarea MUST accept natural line breaks, and the existing submit payload MUST preserve those line breaks in the notes string without changing the order API shape.
+
+#### Scenario: User enters multiline notes
+
+- **GIVEN** the user enters "第一行\n第二行" in Notes
+- **WHEN** the user submits an otherwise valid order form
+- **THEN** the emitted payload contains notes equal to "第一行\n第二行"
+- **AND** the Notes control remains a textarea with a multi-line minimum height
