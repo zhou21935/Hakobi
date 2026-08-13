@@ -64,6 +64,7 @@ const inputId = useId()
 
 const inputClass = computed(() => [
   'min-w-0 max-w-full w-full rounded-lg border px-3 py-2 text-sm text-ink transition-colors',
+  props.type === 'date' && 'block appearance-none [inline-size:100%] [min-inline-size:0] [max-inline-size:100%]',
   'focus:outline-none focus:ring-2 focus:ring-offset-0',
   'disabled:bg-badge-category-bg disabled:text-ink-muted disabled:cursor-not-allowed',
   props.error

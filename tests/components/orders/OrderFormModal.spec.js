@@ -451,6 +451,11 @@ describe('OrderFormModal narrow viewport layout', () => {
     for (const dateInput of cargo.findAll('input[type="date"]')) {
       expect(dateInput.classes()).toContain('min-w-0')
       expect(dateInput.classes()).toContain('max-w-full')
+      expect(dateInput.classes()).toContain('appearance-none')
+      expect(dateInput.classes()).toContain('block')
+      expect(dateInput.classes()).toContain('[inline-size:100%]')
+      expect(dateInput.classes()).toContain('[min-inline-size:0]')
+      expect(dateInput.classes()).toContain('[max-inline-size:100%]')
     }
     wrapper.unmount()
   })
