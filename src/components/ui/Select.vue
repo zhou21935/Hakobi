@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="min-w-0">
     <label v-if="label" :for="selectId" class="block mb-1.5 text-sm font-medium text-ink">
       {{ label }}
     </label>
@@ -52,7 +52,7 @@ defineEmits(['update:modelValue'])
 const selectId = useId()
 
 const selectClass = computed(() => [
-  'w-full rounded-lg border px-3 py-2 text-sm text-ink transition-colors bg-white',
+  'min-w-0 max-w-full w-full rounded-lg border px-3 py-2 text-sm text-ink transition-colors bg-white',
   'focus:outline-none focus:ring-2 focus:ring-offset-0',
   'disabled:bg-badge-category-bg disabled:text-ink-muted disabled:cursor-not-allowed',
   'border-card-border focus:border-primary-from focus:ring-primary-to/30'

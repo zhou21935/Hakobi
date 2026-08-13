@@ -45,7 +45,7 @@
           <h3 class="text-sm font-bold text-ink">貨物</h3>
           <span class="text-[11px] text-ink-muted">CARGO</span>
         </div>
-        <div class="grid grid-cols-1 gap-3.5 p-4 sm:grid-cols-2 lg:p-[18px]">
+        <div class="grid min-w-0 grid-cols-1 gap-3.5 p-4 sm:grid-cols-2 lg:p-[18px]">
           <Input v-model="form.orderDate" class="order-form-control" type="date" label="下單日期" />
           <Select v-model="form.status" class="order-form-control" label="貨物狀態" :options="statusOptions" />
           <Input v-model="form.estimatedShipDate" class="order-form-control" type="date" label="預計出貨日期" />

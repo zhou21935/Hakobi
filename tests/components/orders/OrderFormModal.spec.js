@@ -439,6 +439,22 @@ describe('OrderFormModal narrow viewport layout', () => {
     wrapper.unmount()
   })
 
+  it('allows cargo controls and native date inputs to shrink within a phone viewport', () => {
+    const wrapper = mountForm()
+    const cargo = body().find('[data-testid="order-section-cargo"]')
+    const cargoGrid = cargo.find('.grid')
+
+    expect(cargoGrid.classes()).toContain('min-w-0')
+    for (const control of cargo.findAll('.order-form-control')) {
+      expect(control.classes()).toContain('min-w-0')
+    }
+    for (const dateInput of cargo.findAll('input[type="date"]')) {
+      expect(dateInput.classes()).toContain('min-w-0')
+      expect(dateInput.classes()).toContain('max-w-full')
+    }
+    wrapper.unmount()
+  })
+
   it('exposes the phone, tablet, and desktop layout contract without duplicate controls', () => {
     const wrapper = mountForm()
     const overlayClass = body().find('[data-testid="modal-overlay"]').attributes('class')
