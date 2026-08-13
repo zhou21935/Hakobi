@@ -34,7 +34,7 @@
 
 ### 非按鈕表面依參考設計且按鈕維持品牌色
 
-參考檔作為資訊階層、尺寸、間距、RWD 行為及非按鈕表面的視覺依據。彈窗 header／content、頁面遮罩下的 panel、section header、section body、輸入框、選單、日期欄位、複選 chip、附件區的底色、邊框、圓角與高度依參考畫面調整；取消與送出等操作按鈕繼續使用既有 `Button` variant 與 Hakobi 品牌色。共用輸入元件若需要外觀覆寫，使用具安全預設值的 class interface，避免全站其他表單被無意改色。
+參考檔作為資訊階層、尺寸、間距、RWD 行為及非按鈕表面的視覺依據。Modal content 與商品、貨物、物流、備註四個 section body 使用相同白色底色，避免區塊外圍出現不同色帶；Modal header（新增／編輯訂單標題區）保留目前淡紫底色。section header、輸入框、選單、日期欄位、複選 chip、附件區的邊框、圓角與高度依參考畫面調整；取消與送出等操作按鈕繼續使用既有 `Button` variant 與 Hakobi 品牌色。共用輸入元件若需要外觀覆寫，使用具安全預設值的 class interface，避免全站其他表單被無意改色。
 
 ### 備註使用可換行的多行輸入
 
@@ -58,7 +58,7 @@
 - 在 390px 寬 viewport，panel 自底部展開、表單欄位單欄、內容可捲動、操作列固定；在 768px，panel 置中且貨物日期可雙欄；在 1280px，panel 約 880px 且貨物與物流左右排列。
 - 訂單號碼可輸入；附件 input 可一次選取多檔，清單顯示每個檔名與類型，使用者可移除任一檔案。
 - 備註內容顯示為多行 textarea，至少可看見數行文字，輸入 Enter 換行後 submit payload 的 `notes` 保留換行字元。
-- 彈窗、區塊及所有表單 controls 的非按鈕底色、邊框、圓角、高度與間距符合參考畫面；取消與送出按鈕顏色維持目前 Hakobi 樣式。
+- Modal content 與商品、貨物、物流、備註四個大區塊的底色皆為白色；新增／編輯訂單標題區維持目前淡紫底色；所有表單 controls 的非按鈕邊框、圓角、高度與間距符合參考畫面，取消與送出按鈕顏色維持目前 Hakobi 樣式。
 - 關閉後重新開啟時，訂單號碼與附件清單為空。
 - 有效表單送出時，`submit` event 維持目前欄位集合；payload MUST NOT 擁有 `orderNumber` 或 `files` property。
 - pending 時送出按鈕維持 disabled 且不 emit；現有欄位驗證失敗時顯示原錯誤並不 emit。
@@ -79,7 +79,7 @@
 **Acceptance criteria**
 
 - `tests/components/orders/OrderFormModal.spec.js` 驗證四區塊、三種 breakpoint class、分類選項、訂單號碼與附件互動、重開清除、payload 排除與既有驗證／pending 行為。
-- `tests/components/orders/OrderFormModal.spec.js` 另驗證備註是 textarea、可提交包含換行的字串，以及所有區塊欄位使用參考版型 class contract 而按鈕仍使用原 variant。
+- `tests/components/orders/OrderFormModal.spec.js` 另驗證備註是 textarea、可提交包含換行的字串、Modal content 與四個大區塊使用白色底色、標題區仍為淡紫底色，以及按鈕仍使用原 variant。
 - `tests/components/ui/Modal.spec.js` 驗證新增樣式介面的預設相容性、響應式 override 以及既有 Escape、overlay、scroll lock 行為。
 - 執行 `npm test` 與 `npm run build` 均成功，並以 390px、768px、1280px viewport 做視覺確認，無水平溢位且 footer 可操作。
 

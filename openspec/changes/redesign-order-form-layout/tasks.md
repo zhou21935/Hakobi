@@ -27,3 +27,8 @@
 - [x] 5.3 以 TDD 為「Order form controls match the reference surfaces without recoloring actions」新增失敗的外觀 contract 測試，鎖定 dialog、section、Input、Select、date、MultiSelect、Checkbox、textarea、attachment 的參考底色／邊框／圓角／高度／間距 class，以及取消／送出仍使用現有 Button variants；驗證目標：`OrderFormModal.spec.js` 與必要的 UI component tests 在外觀覆寫前失敗。
 - [x] 5.4 實作設計決策「非按鈕表面依參考設計且按鈕維持品牌色」，以訂單表單 opt-in class interface 或 scoped styling 統一四區塊內 controls，避免改變其他頁面共用元件預設；驗證目標：外觀 contract 與共用元件回歸測試通過，並以使用者提供的桌機與手機截圖逐項比對。
 - [x] 5.5 執行完整回歸與 production build，確認只新增前端樣式與 notes textarea 行為，store、API、後端、資料庫仍無變更；驗證目標：`npm test`、`npm run build` 成功，且 `git diff -- src/stores/orders.js src/services/ordersApi.js backend supabase` 無輸出。
+
+## 6. 白色內容與區塊底色
+
+- [x] 6.1 以 TDD 更新「Order form controls match the reference surfaces without recoloring actions」外觀 contract，驗證 Modal content 與商品、貨物、物流、備註四個大區塊皆為白色，Modal header 仍保留淡紫底色；驗證目標：`tests/components/orders/OrderFormModal.spec.js` 新斷言在樣式調整前因 content 仍為 `bg-[#faf8fc]` 而失敗。
+- [x] 6.2 實作設計決策「非按鈕表面依參考設計且按鈕維持品牌色」的底色微調，將訂單表單 content／panel 的區塊外圍改為白色且不改 header 與 Button variants；驗證目標：訂單表單外觀 contract、`npm test`、`npm run build` 通過，且 `git diff -- src/stores/orders.js src/services/ordersApi.js backend supabase` 無輸出。

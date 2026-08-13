@@ -3,9 +3,9 @@
     :model-value="modelValue"
     :title="isEditMode ? '編輯訂單' : '新增訂單'"
     overlay-class="items-end justify-center p-0 sm:items-center sm:p-6"
-    panel-class="order-form-dialog h-[92dvh] max-h-[92dvh] rounded-t-[28px] rounded-b-none bg-[#faf8fc] sm:h-auto sm:max-h-[88dvh] sm:max-w-[560px] sm:rounded-[28px] lg:max-w-[880px]"
+    panel-class="order-form-dialog h-[92dvh] max-h-[92dvh] rounded-t-[28px] rounded-b-none bg-white sm:h-auto sm:max-h-[88dvh] sm:max-w-[560px] sm:rounded-[28px] lg:max-w-[880px]"
     header-class="border-b border-[#ece6f2] bg-[#f7f4fa] px-5 py-4 sm:px-[30px] sm:py-5"
-    content-class="bg-[#faf8fc] p-4 sm:p-5 lg:px-[30px] lg:py-6"
+    content-class="bg-white p-4 sm:p-5 lg:px-[30px] lg:py-6"
     footer-class="border-t border-card-border bg-white px-4 pt-3.5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-[30px] sm:py-4"
     @update:model-value="$emit('update:modelValue', $event)"
   >

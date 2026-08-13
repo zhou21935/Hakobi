@@ -275,13 +275,21 @@ describe('OrderFormModal multiline notes', () => {
 describe('OrderFormModal reference surfaces', () => {
   it('opts every non-action control into the reference surface while preserving button variants', () => {
     const wrapper = mountForm()
-    expect(body().find('[data-testid="modal-panel"]').attributes('class')).toContain('order-form-dialog')
+    const panelClass = body().find('[data-testid="modal-panel"]').attributes('class')
+    expect(panelClass).toContain('order-form-dialog')
+    expect(panelClass).toContain('bg-white')
+    expect(panelClass).not.toContain('bg-[#faf8fc]')
     expect(body().find('[data-testid="modal-header"]').attributes('class')).toContain('bg-[#f7f4fa]')
-    expect(body().find('[data-testid="modal-content"]').attributes('class')).toContain('bg-[#faf8fc]')
+    const contentClass = body().find('[data-testid="modal-content"]').attributes('class')
+    expect(contentClass).toContain('bg-white')
+    expect(contentClass).not.toContain('bg-[#faf8fc]')
 
     const sections = body().findAll('[data-testid^="order-section-"]')
     expect(sections).toHaveLength(4)
-    sections.forEach((section) => expect(section.attributes('class')).toContain('order-form-section'))
+    sections.forEach((section) => {
+      expect(section.attributes('class')).toContain('order-form-section')
+      expect(section.attributes('class')).toContain('bg-white')
+    })
 
     const controls = body().findAll('.order-form-control')
     expect(controls.length).toBeGreaterThan(10)
