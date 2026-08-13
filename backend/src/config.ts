@@ -2,12 +2,13 @@
 
 const schema = z.object({
   SUPABASE_URL: z.url().refine((url) => url.startsWith('https://'), 'must use HTTPS'),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   SUPABASE_DB_URL: z.string().regex(/^postgres(ql)?:\/\//, 'must be PostgreSQL'),
   CORS_ORIGIN: z.url(),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000)
 })
 
-export type Config = { supabaseUrl: string; databaseUrl: string; corsOrigin: string; port: number }
+export type Config = { supabaseUrl: string; supabaseServiceRoleKey: string; databaseUrl: string; corsOrigin: string; port: number }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const result = schema.safeParse(env)
@@ -17,6 +18,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   return {
     supabaseUrl: result.data.SUPABASE_URL.replace(/\/$/, ''),
+    supabaseServiceRoleKey: result.data.SUPABASE_SERVICE_ROLE_KEY,
     databaseUrl: result.data.SUPABASE_DB_URL,
     corsOrigin: result.data.CORS_ORIGIN,
     port: result.data.PORT

@@ -55,12 +55,13 @@ describe('validateOrder', () => {
     expect(errors.amount).toBe('金額須為大於 0 的數字')
   })
 
-  it('sets errors.productCategories when productCategories is an empty array', () => {
+  it('accepts an empty product category array and rejects unsupported values', () => {
     const { isValid, errors } = validateOrder({ category: 'agent', name: 'Widget', amount: 10, productCategories: [] })
-    expect(isValid).toBe(false)
-    expect(errors.productCategories).toBe('請至少選擇一項商品分類')
+    expect(isValid).toBe(true)
+    expect(errors.productCategories).toBeNull()
     expect(errors.name).toBeNull()
     expect(errors.amount).toBeNull()
+    expect(validateOrder({ category: 'agent', name: 'Widget', amount: 10, productCategories: ['unsupported'] }).errors.productCategories).toBeTruthy()
   })
 
   it.each([

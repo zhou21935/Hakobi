@@ -117,7 +117,7 @@ describe('OrderList category route sync', () => {
     await wrapper.vm.$nextTick()
 
     await body().find('input[placeholder="請輸入商品名稱"]').setValue('切換後新增的訂單')
-    await body().find('input[type="number"]').setValue(50)
+    await body().find('input[inputmode="decimal"]').setValue(50)
 
     const multiSelectButton = body()
       .findAll('button')

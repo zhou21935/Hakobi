@@ -28,7 +28,7 @@
           </div>
           <MultiSelect v-model="form.productCategories" class="order-form-control" label="商品分類" placeholder="請選擇商品分類" :options="productCategoryOptions" :error="productCategoriesError" />
           <div class="grid grid-cols-[1.3fr_0.8fr] gap-2.5 lg:col-span-2">
-            <Input v-model="form.amount" class="order-form-control" type="number" label="金額" placeholder="0" :error="amountError" />
+            <Input :model-value="form.amount" class="order-form-control" type="text" input-mode="decimal" label="金額" placeholder="0" :error="amountError" @update:model-value="form.amount = sanitizeAmountInput($event)" />
             <Select v-model="form.currency" class="order-form-control" label="幣別" :options="currencyOptions" />
           </div>
           <Input data-testid="order-number" v-model="orderNumber" class="order-form-control" label="訂單號碼" placeholder="例如 114-2938471-0038" />
@@ -90,11 +90,20 @@
                 <span class="block text-[11px] text-ink-muted">PDF / JPG / PNG</span>
               </span>
             </button>
-            <input ref="fileInput" data-testid="order-attachments" type="file" multiple accept=".pdf,image/*" class="hidden" @change="handleAttachmentChange" />
+            <input ref="fileInput" data-testid="order-attachments" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" class="hidden" @change="handleAttachmentChange" />
             <div v-for="(attachment, index) in attachments" :key="attachment.key" class="flex items-center gap-2.5 rounded-lg border border-card-border bg-white px-3 py-2.5">
               <span class="rounded bg-ink px-1.5 py-0.5 text-[10px] text-white">{{ attachment.type }}</span>
               <span class="min-w-0 flex-1 truncate text-[13px]">{{ attachment.name }}</span>
               <button type="button" :data-testid="`remove-attachment-${index}`" class="text-ink-muted hover:text-primary-from" :aria-label="`移除 ${attachment.name}`" @click="attachments.splice(index, 1)">×</button>
+            </div>
+            <div v-for="attachment in attachmentStatus.confirmed" :key="attachment.id" class="flex items-center gap-2.5 rounded-lg border border-card-border bg-white px-3 py-2.5">
+              <span class="min-w-0 flex-1 truncate text-[13px]">{{ attachment.name }}</span>
+              <button type="button" :aria-label="`下載 ${attachment.name}`" class="text-primary-from" @click="$emit('download-attachment', attachment)">下載</button>
+              <button type="button" :aria-label="`刪除 ${attachment.name}`" class="text-red-600" @click="$emit('delete-attachment', attachment)">刪除</button>
+            </div>
+            <div v-for="(failure, index) in attachmentStatus.failed" :key="`${failure.name}-${index}`" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[13px]">
+              <div class="flex items-center gap-2"><span class="min-w-0 flex-1 truncate">{{ failure.name }}</span><button type="button" :data-testid="`retry-attachment-${index}`" class="text-primary-from" @click="$emit('retry-attachment', failure.file)">重試</button></div>
+              <p class="mt-1 text-red-600">{{ failure.message }}</p>
             </div>
           </div>
         </div>
@@ -129,10 +138,11 @@ const props = defineProps({
     default: null
   },
   pending: { type: Boolean, default: false },
-  category: { type: String, default: null }
+  category: { type: String, default: null },
+  attachmentStatus: { type: Object, default: () => ({ confirmed: [], failed: [] }) }
 })
 
-const emit = defineEmits(['update:modelValue', 'submit'])
+const emit = defineEmits(['update:modelValue', 'submit', 'retry-attachment', 'download-attachment', 'delete-attachment'])
 
 const isEditMode = computed(() => props.order !== null)
 const showCategorySelect = computed(() => !isEditMode.value && !props.category)
@@ -193,6 +203,12 @@ const toDateOnly = (value) => {
   return match ? match[0] : ''
 }
 
+const sanitizeAmountInput = (value) => {
+  const sanitized = String(value ?? '').replace(/[^\d.]/g, '')
+  const [integer = '', ...decimalParts] = sanitized.split('.')
+  return decimalParts.length > 0 ? `${integer}.${decimalParts.join('')}` : integer
+}
+
 const resetForm = () => {
   orderNumber.value = ''
   attachments.value = []
@@ -202,6 +218,7 @@ const resetForm = () => {
   productUrlError.value = ''
   categoryError.value = ''
   if (props.order) {
+    orderNumber.value = props.order.orderNumber || ''
     Object.assign(form, emptyForm(), {
       name: props.order.name || '',
       category: props.order.category || props.category || '',
@@ -230,7 +247,8 @@ const handleAttachmentChange = (event) => {
   attachments.value.push(...selected.map((file, index) => ({
     key: `${file.name}-${file.size}-${file.lastModified}-${attachments.value.length + index}`,
     name: file.name,
-    type: file.name.includes('.') ? file.name.split('.').pop().toUpperCase() : 'FILE'
+    type: file.name.includes('.') ? file.name.split('.').pop().toUpperCase() : 'FILE',
+    file
   })))
   event.target.value = ''
 }
@@ -262,6 +280,7 @@ const handleSubmit = () => {
 
   emit('submit', {
     ...normalized,
+    orderNumber: orderNumber.value.trim(),
     platform: form.platform,
     productUrl: form.productUrl,
     currency: form.currency,
@@ -274,7 +293,7 @@ const handleSubmit = () => {
     trackingNumber: form.trackingNumber,
     isPreorder: form.isPreorder,
     notes: form.notes
-  })
+  }, attachments.value.map(({ file }) => file))
 }
 </script>
 

@@ -7,6 +7,12 @@ const jsonResponse = (status, body) => ({
   json: vi.fn().mockResolvedValue(body)
 })
 
+const blobResponse = (status, body) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  blob: vi.fn().mockResolvedValue(body)
+})
+
 const setup = (responses, tokens = ['token-a']) => {
   const fetchImpl = vi.fn()
   for (const response of responses) fetchImpl.mockResolvedValueOnce(response)
@@ -49,6 +55,20 @@ describe('orders API client', () => {
     expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ name: 'Book' })
   })
 
+  it('preserves order number and optional categories in create and patch payloads', async () => {
+    const created = { id: 'order-a', orderNumber: 'A-100', productCategories: [] }
+    const { api, fetchImpl } = setup([
+      jsonResponse(201, { data: created }),
+      jsonResponse(200, { data: { ...created, orderNumber: '' } })
+    ])
+
+    await api.createOrder({ orderNumber: 'A-100', productCategories: [] })
+    await api.updateOrder('order-a', { orderNumber: '', productCategories: [] })
+
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ orderNumber: 'A-100', productCategories: [] })
+    expect(JSON.parse(fetchImpl.mock.calls[1][1].body)).toEqual({ orderNumber: '', productCategories: [] })
+  })
+
   it('opts into fetch keepalive only when finalizing during document unload', async () => {
     const { api, fetchImpl } = setup([{ ok: true, status: 204, json: vi.fn() }])
     await api.deleteOrder('order-a', { keepalive: true })
@@ -85,5 +105,32 @@ describe('orders API client', () => {
 
     await expect(api.listOrders()).rejects.toMatchObject({ code: 'AUTH_UNAUTHORIZED', status: 401 })
     expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('uses FormData without setting Content-Type and encodes attachment identifiers', async () => {
+    const file = new File(['pdf'], 'receipt.pdf', { type: 'application/pdf' })
+    const downloaded = new Blob(['pdf'], { type: 'application/pdf' })
+    const { api, fetchImpl } = setup([
+      jsonResponse(200, { data: [] }),
+      jsonResponse(201, { data: { id: 'attachment/id' } }),
+      blobResponse(200, downloaded),
+      { ok: true, status: 204, json: vi.fn() }
+    ])
+
+    await api.listAttachments('order/id')
+    await api.uploadAttachment('order/id', file)
+    await expect(api.downloadAttachment('order/id', 'attachment/id')).resolves.toBe(downloaded)
+    await api.deleteAttachment('order/id', 'attachment/id')
+
+    const uploadOptions = fetchImpl.mock.calls[1][1]
+    expect(uploadOptions.body).toBeInstanceOf(FormData)
+    expect(uploadOptions.body.get('file')).toBe(file)
+    expect(uploadOptions.headers).not.toHaveProperty('Content-Type')
+    expect(fetchImpl.mock.calls.map(([url]) => url)).toEqual([
+      'https://api.example.test/api/orders/order%2Fid/attachments',
+      'https://api.example.test/api/orders/order%2Fid/attachments',
+      'https://api.example.test/api/orders/order%2Fid/attachments/attachment%2Fid/download',
+      'https://api.example.test/api/orders/order%2Fid/attachments/attachment%2Fid'
+    ])
   })
 })

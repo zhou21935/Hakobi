@@ -18,11 +18,12 @@ const isSafeProductUrl = (value) => {
 
 export const validateOrder = (data) => {
   const supportedCategories = ['agent', 'parcel']
+  const supportedProductCategories = ['merch', 'book', 'other']
   const errors = {
     category: supportedCategories.includes(data.category) ? null : '請選擇訂單分類',
     name: typeof data.name !== 'string' || data.name.trim() === '' ? '商品名稱不可為空' : null,
     amount: Number.isFinite(data.amount) && data.amount > 0 ? null : '金額須為大於 0 的數字',
-    productCategories: Array.isArray(data.productCategories) && data.productCategories.length > 0 ? null : '請至少選擇一項商品分類',
+    productCategories: Array.isArray(data.productCategories) && data.productCategories.every((value) => supportedProductCategories.includes(value)) ? null : '商品分類包含不支援的選項',
     productUrl: isSafeProductUrl(data.productUrl) ? null : '商品連結須為有效的 HTTP 或 HTTPS 網址'
   }
 

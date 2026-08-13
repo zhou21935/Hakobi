@@ -8,11 +8,11 @@ const baseOrder = (overrides = {}) => ({
   productUrl: 'https://example.com/item/1', status: 'IN_TRANSIT', amount: 12000,
   currency: 'JPY', isPaid: false, orderDate: '2026-08-01', estimatedShipDate: '2026-08-10',
   estimatedArrivalDate: '2026-08-20', isPreorder: true, productCategories: ['book'],
-  shippingMethod: '日本郵便 EMS', trackingNumber: 'EN123456789JP', notes: '合併寄送',
+  orderNumber: '114-2938471-0038', shippingMethod: '日本郵便 EMS', trackingNumber: 'EN123456789JP', notes: '合併寄送',
   createdAt: '2026-08-01T01:02:03.000Z', updatedAt: '2026-08-02T04:05:06.000Z', ...overrides
 })
-const mountDetails = (order = baseOrder()) => mount(OrderDetailsModal, {
-  props: { modelValue: true, order }, attachTo: document.body
+const mountDetails = (order = baseOrder(), extraProps = {}) => mount(OrderDetailsModal, {
+  props: { modelValue: true, order, ...extraProps }, attachTo: document.body
 })
 
 beforeEach(() => vi.useRealTimers())
@@ -23,7 +23,7 @@ describe('OrderDetailsModal content', () => {
     const wrapper = mountDetails()
     const text = body().text()
     for (const heading of ['基本資料', '訂單資料', '物流資料', '日期資料', '系統資訊']) expect(text).toContain(heading)
-    for (const value of ['限定版畫冊', 'Amazon JP', '書籍', 'JPY', '12,000', '未付款', '預購', '運送中', '日本郵便 EMS', 'EN123456789JP', '2026', '合併寄送']) expect(text).toContain(value)
+    for (const value of ['限定版畫冊', 'Amazon JP', '書籍', '114-2938471-0038', 'JPY', '12,000', '未付款', '預購', '運送中', '日本郵便 EMS', 'EN123456789JP', '2026', '合併寄送']) expect(text).toContain(value)
     wrapper.unmount()
   })
 
@@ -37,6 +37,19 @@ describe('OrderDetailsModal content', () => {
 })
 
 describe('OrderDetailsModal actions', () => {
+  it('shows confirmed attachments and emits download and delete actions', async () => {
+    const attachment = { id: 'attachment-a', orderId: 'order-a', name: 'receipt.pdf', mimeType: 'application/pdf', size: 4, createdAt: '2026-08-13T12:00:00.000Z' }
+    const wrapper = mountDetails(baseOrder(), { attachments: [attachment] })
+
+    expect(body().text()).toContain('receipt.pdf')
+    await body().find('[aria-label="下載 receipt.pdf"]').trigger('click')
+    await body().find('[aria-label="刪除 receipt.pdf"]').trigger('click')
+
+    expect(wrapper.emitted('download-attachment')).toEqual([[attachment]])
+    expect(wrapper.emitted('delete-attachment')).toEqual([[attachment]])
+    wrapper.unmount()
+  })
+
   it('copies the exact tracking number and resets temporary success feedback', async () => {
     vi.useFakeTimers()
     const writeText = vi.fn().mockResolvedValue(undefined)

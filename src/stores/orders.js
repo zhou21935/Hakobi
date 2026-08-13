@@ -50,6 +50,7 @@ export const useOrdersStore = defineStore('orders', () => {
   const initialized = ref(false)
   const error = ref(null)
   const pendingDelete = ref(null)
+  const attachmentStatuses = ref({})
 
   const storeError = (caught) => {
     if (caught?.status === 401 || caught?.code === 'AUTH_UNAUTHORIZED') {
@@ -85,18 +86,65 @@ export const useOrdersStore = defineStore('orders', () => {
     try { return await operation() } catch (caught) { throw storeError(caught) } finally { isMutating.value = false }
   }
 
-  const addOrder = async (orderData) => {
+  const uploadFiles = async (orderId, files) => {
+    const settled = await Promise.allSettled(files.map((file) => ordersApi.uploadAttachment(orderId, file)))
+    const confirmed = []
+    const failed = []
+    settled.forEach((result, index) => {
+      if (result.status === 'fulfilled') confirmed.push(result.value)
+      else failed.push({ file: files[index], name: files[index].name, code: result.reason?.code || 'UPLOAD_FAILED', message: result.reason?.message || '附件上傳失敗' })
+    })
+    attachmentStatuses.value[orderId] = { confirmed, failed }
+    return attachmentStatuses.value[orderId]
+  }
+
+  const attachmentStatusFor = (orderId) => attachmentStatuses.value[orderId] || { confirmed: [], failed: [] }
+
+  const retryAttachment = async (orderId, file) => {
+    const status = attachmentStatusFor(orderId)
+    try {
+      const confirmed = await ordersApi.uploadAttachment(orderId, file)
+      attachmentStatuses.value[orderId] = { confirmed: [...status.confirmed, confirmed], failed: status.failed.filter((failure) => failure.file !== file) }
+      return confirmed
+    } catch (caught) {
+      attachmentStatuses.value[orderId] = { confirmed: status.confirmed, failed: status.failed.map((failure) => failure.file === file ? { ...failure, code: caught?.code || 'UPLOAD_FAILED', message: caught?.message || '附件上傳失敗' } : failure) }
+      throw storeError(caught)
+    }
+  }
+
+  const loadAttachments = async (orderId) => {
+    try {
+      const confirmed = await ordersApi.listAttachments(orderId)
+      attachmentStatuses.value[orderId] = { confirmed, failed: attachmentStatusFor(orderId).failed }
+      return confirmed
+    } catch (caught) { throw storeError(caught) }
+  }
+
+  const downloadAttachment = async (orderId, attachmentId) => {
+    try { return await ordersApi.downloadAttachment(orderId, attachmentId) } catch (caught) { throw storeError(caught) }
+  }
+
+  const deleteAttachment = async (orderId, attachmentId) => {
+    try {
+      await ordersApi.deleteAttachment(orderId, attachmentId)
+      const status = attachmentStatusFor(orderId)
+      attachmentStatuses.value[orderId] = { ...status, confirmed: status.confirmed.filter(({ id }) => id !== attachmentId) }
+    } catch (caught) { throw storeError(caught) }
+  }
+
+  const addOrder = async (orderData, files = []) => {
     const normalized = normalizeOrderInput(orderData)
     const { isValid } = validateOrder(normalized)
     if (!isValid) throw localError('VALIDATION_ERROR', '訂單資料驗證失敗')
     return mutate(async () => {
       const created = await ordersApi.createOrder(normalized)
       orders.value.push(created)
+      if (files.length > 0) await uploadFiles(created.id, files)
       return created
     })
   }
 
-  const updateOrder = async (id, orderData) => {
+  const updateOrder = async (id, orderData, files = []) => {
     const index = orders.value.findIndex(order => order.id === id)
     if (index === -1) throw localError('ORDER_NOT_FOUND', '找不到訂單')
 
@@ -107,6 +155,7 @@ export const useOrdersStore = defineStore('orders', () => {
     return mutate(async () => {
       const updated = await ordersApi.updateOrder(id, orderData)
       orders.value[index] = updated
+      if (files.length > 0) await uploadFiles(updated.id, files)
       return updated
     })
   }
@@ -124,6 +173,7 @@ export const useOrdersStore = defineStore('orders', () => {
     if (!pendingDelete.value) return
     const snapshot = pendingDelete.value
     pendingDelete.value = null
+    attachmentStatuses.value = {}
     try {
       await mutate(() => ordersApi.deleteOrder(snapshot.order.id, { keepalive }))
     } catch (caught) {
@@ -220,10 +270,16 @@ export const useOrdersStore = defineStore('orders', () => {
     initialized,
     error,
     pendingDelete,
+    attachmentStatuses,
     loadOrders,
     retry,
     clearOrders,
     addOrder,
+    attachmentStatusFor,
+    retryAttachment,
+    loadAttachments,
+    downloadAttachment,
+    deleteAttachment,
     updateOrder,
     deleteOrder,
     stageDelete,
