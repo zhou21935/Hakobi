@@ -1,8 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect } from 'vitest'
 import { mount, DOMWrapper } from '@vue/test-utils'
 import OrderFormModal from '@/components/orders/OrderFormModal.vue'
 
 const body = () => new DOMWrapper(document.body)
+
+afterEach(() => {
+  document.body.innerHTML = ''
+  document.body.style.overflow = ''
+  document.documentElement.style.overflow = ''
+})
 
 const fillRequiredFields = async () => {
   await body().find('input[placeholder="請輸入商品名稱"]').setValue('測試商品')
@@ -58,6 +64,30 @@ describe('OrderFormModal preorder checkbox', () => {
     const wrapper = mountForm()
     const labels = body().findAll('label').map((l) => l.text())
     expect(labels.some((text) => text.includes('送往集運倉'))).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+describe('OrderFormModal grouped sections', () => {
+  it.each([
+    ['product', '商品'],
+    ['cargo', '貨物'],
+    ['shipping', '物流'],
+    ['notes', '備註']
+  ])('renders the %s section labelled %s in create mode', (section, label) => {
+    const wrapper = mountForm()
+    const region = body().find(`[data-testid="order-section-${section}"]`)
+    expect(region.exists()).toBe(true)
+    expect(region.text()).toContain(label)
+    wrapper.unmount()
+  })
+
+  it('uses the same four sections in edit mode without changing category controls', () => {
+    const wrapper = mountForm({ category: 'agent', name: 'Book', amount: 100, productCategories: ['book'] }, { category: null })
+    expect(body().findAll('[data-testid^="order-section-"]')).toHaveLength(4)
+    expect(body().find('[data-testid="order-category"]').exists()).toBe(false)
+    expect(body().text()).toContain('書籍')
+    expect(body().text()).not.toMatch(/公仔模型|服飾|3C/)
     wrapper.unmount()
   })
 })
@@ -181,6 +211,51 @@ describe('OrderFormModal product category field', () => {
   })
 })
 
+describe('OrderFormModal frontend-only future fields', () => {
+  it('lists multiple attachments, removes one, and excludes future fields from submit', async () => {
+    const wrapper = mountForm()
+    await fillRequiredFields()
+    await selectProductCategories(['周邊'])
+    await body().find('[data-testid="order-number"]').find('input').setValue('114-2938471-0038')
+    const input = body().find('[data-testid="order-attachments"]')
+    Object.defineProperty(input.element, 'files', {
+      configurable: true,
+      value: [new File(['invoice'], 'invoice.pdf', { type: 'application/pdf' }), new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })]
+    })
+    await input.trigger('change')
+
+    expect(body().text()).toContain('invoice.pdf')
+    expect(body().text()).toContain('PDF')
+    expect(body().text()).toContain('photo.jpg')
+    expect(body().text()).toContain('JPG')
+    await body().find('[data-testid="remove-attachment-0"]').trigger('click')
+    expect(body().text()).not.toContain('invoice.pdf')
+    expect(body().text()).toContain('photo.jpg')
+
+    await submitForm()
+    const payload = wrapper.emitted('submit').at(-1)[0]
+    expect(payload).not.toHaveProperty('orderNumber')
+    expect(payload).not.toHaveProperty('files')
+    wrapper.unmount()
+  })
+
+  it('clears order number and attachments whenever the form reopens', async () => {
+    const wrapper = mountForm()
+    await body().find('[data-testid="order-number"]').find('input').setValue('114-2938471-0038')
+    const input = body().find('[data-testid="order-attachments"]')
+    Object.defineProperty(input.element, 'files', {
+      configurable: true,
+      value: [new File(['invoice'], 'invoice.pdf', { type: 'application/pdf' })]
+    })
+    await input.trigger('change')
+    await wrapper.setProps({ modelValue: false })
+    await wrapper.setProps({ modelValue: true })
+    expect(body().find('[data-testid="order-number"]').find('input').element.value).toBe('')
+    expect(body().text()).not.toContain('invoice.pdf')
+    wrapper.unmount()
+  })
+})
+
 describe('OrderFormModal existing name/amount validation is unaffected', () => {
   it('blocks submission and shows an error when product name is blank', async () => {
     const wrapper = mountForm()
@@ -259,7 +334,7 @@ describe('OrderFormModal narrow viewport layout', () => {
     const wrapper = mountForm()
     const container = body()
       .findAll('div')
-      .find((d) => (d.attributes('class') || '').includes('max-h-[85vh]'))
+      .find((d) => (d.attributes('class') || '').includes('max-h-[92dvh]'))
     expect(container).toBeTruthy()
     const scrollableBody = body()
       .findAll('div')
@@ -268,7 +343,7 @@ describe('OrderFormModal narrow viewport layout', () => {
     wrapper.unmount()
   })
 
-  it('arranges form field groups in a single column below the md breakpoint', () => {
+  it('arranges cargo fields in one column on phones and two columns from tablet width', () => {
     const wrapper = mountForm()
     const gridContainers = body()
       .findAll('div')
@@ -276,9 +351,29 @@ describe('OrderFormModal narrow viewport layout', () => {
     expect(gridContainers.length).toBeGreaterThan(0)
     for (const grid of gridContainers) {
       const cls = grid.attributes('class')
-      expect(cls).not.toContain('sm:grid-cols')
-      expect(cls).toMatch(/md:grid-cols-\d/)
+      expect(cls).toContain('sm:grid-cols-2')
     }
+    wrapper.unmount()
+  })
+
+  it('exposes the phone, tablet, and desktop layout contract without duplicate controls', () => {
+    const wrapper = mountForm()
+    const overlayClass = body().find('[data-testid="modal-overlay"]').attributes('class')
+    const panelClass = body().find('[data-testid="modal-panel"]').attributes('class')
+    const contentClass = body().find('[data-testid="modal-content"]').attributes('class')
+    const footerClass = body().find('[data-testid="modal-footer"]').attributes('class')
+    expect(overlayClass).toContain('items-end')
+    expect(overlayClass).toContain('sm:items-center')
+    expect(panelClass).toContain('h-[92dvh]')
+    expect(panelClass).toContain('sm:max-w-[560px]')
+    expect(panelClass).toContain('lg:max-w-[880px]')
+    expect(contentClass).toContain('overflow-y-auto')
+    expect(footerClass).toContain('shrink-0')
+    expect(body().find('[data-testid="order-section-product"]').attributes('class')).toContain('lg:col-span-2')
+    expect(body().find('[data-testid="order-section-notes"]').attributes('class')).toContain('lg:col-span-2')
+    expect(body().findAll('[data-testid="order-number"] input')).toHaveLength(1)
+    const submit = body().findAll('button').find((button) => button.text() === '送出')
+    expect(submit.attributes('class')).toContain('flex-1 sm:flex-none')
     wrapper.unmount()
   })
 })

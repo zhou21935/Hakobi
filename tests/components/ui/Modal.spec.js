@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import Modal from '@/components/ui/Modal.vue'
 
-const mountModal = (modelValue = true) => mount(Modal, {
-  props: { modelValue, title: '測試視窗' },
+const mountModal = (modelValue = true, extraProps = {}) => mount(Modal, {
+  props: { modelValue, title: '測試視窗', ...extraProps },
   slots: { default: '<p>內容</p>', footer: '<button>操作</button>' },
   attachTo: document.body
 })
@@ -79,6 +79,34 @@ describe('Modal content scroll region', () => {
     expect(scrollRegions[0].classList.contains('modal-scroll-area')).toBe(true)
     expect(scrollRegions[0].classList.contains('min-h-0')).toBe(true)
     expect(panel.classList.contains('overflow-hidden')).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+describe('Modal responsive layout customization', () => {
+  it('keeps the current layout classes by default', () => {
+    const wrapper = mountModal()
+    expect(document.body.querySelector('[data-testid="modal-overlay"]').className).toContain('items-center justify-center')
+    expect(document.body.querySelector('[data-testid="modal-panel"]').className).toContain('max-w-md max-h-[85vh]')
+    expect(document.body.querySelector('[data-testid="modal-header"]').className).toContain('px-5 py-4')
+    expect(document.body.querySelector('[data-testid="modal-content"]').className).toContain('px-5 py-4')
+    expect(document.body.querySelector('[data-testid="modal-footer"]').className).toContain('px-5 py-4')
+    wrapper.unmount()
+  })
+
+  it('appends caller-provided classes to each layout region', () => {
+    const wrapper = mountModal(true, {
+      overlayClass: 'items-end sm:items-center',
+      panelClass: 'sm:max-w-[560px] lg:max-w-[880px]',
+      headerClass: 'order-form-header',
+      contentClass: 'order-form-content',
+      footerClass: 'order-form-footer'
+    })
+    expect(document.body.querySelector('[data-testid="modal-overlay"]').className).toContain('items-end sm:items-center')
+    expect(document.body.querySelector('[data-testid="modal-panel"]').className).toContain('sm:max-w-[560px] lg:max-w-[880px]')
+    expect(document.body.querySelector('[data-testid="modal-header"]').className).toContain('order-form-header')
+    expect(document.body.querySelector('[data-testid="modal-content"]').className).toContain('order-form-content')
+    expect(document.body.querySelector('[data-testid="modal-footer"]').className).toContain('order-form-footer')
     wrapper.unmount()
   })
 })

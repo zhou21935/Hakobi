@@ -3,19 +3,19 @@
     <div
       v-if="modelValue"
       data-testid="modal-overlay"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-8"
+      :class="['fixed inset-0 z-50 flex bg-slate-900/50', overlayClass]"
       @click.self="close"
     >
-      <div data-testid="modal-panel" class="w-full max-w-md max-h-[85vh] overflow-hidden rounded-card bg-white shadow-card text-ink flex flex-col">
-        <div v-if="title" class="px-5 py-4 shrink-0">
+      <div data-testid="modal-panel" :class="['w-full overflow-hidden rounded-card bg-white shadow-card text-ink flex flex-col', panelClass]">
+        <div v-if="title" data-testid="modal-header" :class="['shrink-0', headerClass]">
           <h2 data-testid="modal-title" :class="['text-lg font-heading text-ink', titleClass]">{{ title }}</h2>
         </div>
 
-        <div data-testid="modal-content" class="modal-scroll-area min-h-0 px-5 py-4 flex-1 overflow-y-auto">
+        <div data-testid="modal-content" :class="['modal-scroll-area min-h-0 flex-1 overflow-y-auto', contentClass]">
           <slot />
         </div>
 
-        <div v-if="$slots.footer" class="px-5 py-4 flex justify-end gap-2 shrink-0">
+        <div v-if="$slots.footer" data-testid="modal-footer" :class="['flex justify-end gap-2 shrink-0', footerClass]">
           <slot name="footer" />
         </div>
       </div>
@@ -38,6 +38,26 @@ const props = defineProps({
   titleClass: {
     type: String,
     default: 'font-semibold'
+  },
+  overlayClass: {
+    type: String,
+    default: 'items-center justify-center px-4 py-8'
+  },
+  panelClass: {
+    type: String,
+    default: 'max-w-md max-h-[85vh]'
+  },
+  headerClass: {
+    type: String,
+    default: 'px-5 py-4'
+  },
+  contentClass: {
+    type: String,
+    default: 'px-5 py-4'
+  },
+  footerClass: {
+    type: String,
+    default: 'px-5 py-4'
   }
 })
 
