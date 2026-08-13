@@ -7,6 +7,7 @@
     <input
       :id="inputId"
       :type="type"
+      :inputmode="inputMode"
       :placeholder="placeholder"
       :disabled="disabled"
       :maxlength="maxlength"
@@ -34,6 +35,10 @@ const props = defineProps({
   type: {
     type: String,
     default: 'text'
+  },
+  inputMode: {
+    type: String,
+    default: undefined
   },
   placeholder: {
     type: String,

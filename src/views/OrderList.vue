@@ -34,8 +34,8 @@
       />
     </div>
 
-    <OrderFormModal v-model="isFormOpen" :order="editingOrder" :category="category" :pending="store.isMutating" @submit="handleSubmit" />
-    <OrderDetailsModal v-if="selectedOrder" v-model="isDetailsOpen" :order="selectedOrder" @edit="openEditFromDetails" />
+    <OrderFormModal v-model="isFormOpen" :order="editingOrder" :category="category" :pending="store.isMutating" :attachment-status="activeAttachmentStatus" @submit="handleSubmit" @retry-attachment="retryAttachment" @download-attachment="downloadAttachment" @delete-attachment="deleteAttachment" />
+    <OrderDetailsModal v-if="selectedOrder" v-model="isDetailsOpen" :order="selectedOrder" :attachments="activeAttachmentStatus.confirmed" @edit="openEditFromDetails" @download-attachment="downloadAttachment" @delete-attachment="deleteAttachment" />
     <DeleteUndoToast v-if="store.pendingDelete" :order-name="store.pendingDelete.order.name" @undo="store.undoDelete" />
 
     <Modal v-model="isConfirmOpen" title="確認刪除" title-class="font-semibold">
@@ -109,10 +109,13 @@ const editingOrder = ref(null)
 const isDetailsOpen = ref(false)
 const selectedOrderId = ref(null)
 const selectedOrder = computed(() => store.orders.find((order) => order.id === selectedOrderId.value) || null)
+const activeOrderId = computed(() => editingOrder.value?.id || selectedOrderId.value)
+const activeAttachmentStatus = computed(() => activeOrderId.value ? store.attachmentStatusFor(activeOrderId.value) : { confirmed: [], failed: [] })
 
 const openDetails = (order) => {
   selectedOrderId.value = order.id
   isDetailsOpen.value = true
+  store.loadAttachments(order.id).catch(() => {})
 }
 
 const openCreateForm = () => {
@@ -125,12 +128,17 @@ const openEditForm = (order) => {
   isFormOpen.value = true
 }
 
-const handleSubmit = async (payload) => {
+const handleSubmit = async (payload, files) => {
   try {
-    if (editingOrder.value) await store.updateOrder(editingOrder.value.id, payload)
-    else await store.addOrder(payload)
+    const saved = editingOrder.value ? await store.updateOrder(editingOrder.value.id, payload, files) : await store.addOrder(payload, files)
+    if (store.attachmentStatusFor(saved.id).failed.length > 0) { editingOrder.value = saved; return }
     isFormOpen.value = false
   } catch {}
+}
+const retryAttachment = (file) => activeOrderId.value && store.retryAttachment(activeOrderId.value, file).catch(() => {})
+const deleteAttachment = (attachment) => store.deleteAttachment(attachment.orderId, attachment.id).catch(() => {})
+const downloadAttachment = async (attachment) => {
+  try { const blob = await store.downloadAttachment(attachment.orderId, attachment.id); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = attachment.name; link.click(); URL.revokeObjectURL(url) } catch {}
 }
 
 const isConfirmOpen = ref(false)

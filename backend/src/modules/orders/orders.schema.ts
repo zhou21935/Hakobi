@@ -6,6 +6,7 @@ const safeWebUrl = z.url().refine((value) => URL.canParse(value) && ['http:', 'h
 const editable = {
   category: z.enum(['agent', 'parcel']),
   name: z.string().trim().min(1).max(200),
+  orderNumber: z.string().trim().max(200),
   platform: text,
   productUrl: z.union([safeWebUrl, z.literal('')]),
   status: z.enum(['AWAITING_SHIPMENT', 'CONSOLIDATING', 'IN_TRANSIT', 'ARRIVED', 'COMPLETED']),
@@ -16,7 +17,7 @@ const editable = {
   estimatedShipDate: nullableDate,
   estimatedArrivalDate: nullableDate,
   isPreorder: z.boolean(),
-  productCategories: z.array(z.enum(['merch', 'book', 'other'])).min(1),
+  productCategories: z.array(z.enum(['merch', 'book', 'other'])),
   trackingNumber: text,
   shippingMethod: text,
   notes: text
@@ -24,13 +25,14 @@ const editable = {
 
 export const createOrderSchema = z.strictObject({
   ...editable,
+  orderNumber: editable.orderNumber.default(''),
   status: editable.status.default('AWAITING_SHIPMENT'),
   currency: editable.currency.default('TWD'),
   platform: editable.platform.default(''), productUrl: editable.productUrl.default(''),
   isPaid: editable.isPaid.default(false),
   orderDate: editable.orderDate.default(null),
   estimatedShipDate: editable.estimatedShipDate.default(null), estimatedArrivalDate: editable.estimatedArrivalDate.default(null),
-  isPreorder: editable.isPreorder.default(false), trackingNumber: editable.trackingNumber.default(''),
+  isPreorder: editable.isPreorder.default(false), productCategories: editable.productCategories.default([]), trackingNumber: editable.trackingNumber.default(''),
   shippingMethod: editable.shippingMethod.default(''), notes: editable.notes.default('')
 })
 export const patchOrderSchema = z.strictObject(editable).partial().refine((v) => Object.keys(v).length > 0, 'At least one field is required')

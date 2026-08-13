@@ -12,7 +12,7 @@ afterEach(() => {
 
 const fillRequiredFields = async () => {
   await body().find('input[placeholder="請輸入商品名稱"]').setValue('測試商品')
-  await body().find('input[type="number"]').setValue(100)
+  await body().find('input[inputmode="decimal"]').setValue(100)
 }
 
 const mountForm = (order = null, extraProps = {}) =>
@@ -179,14 +179,14 @@ describe('OrderFormModal logistics fields', () => {
 })
 
 describe('OrderFormModal product category field', () => {
-  it('blocks submission and shows an error when no product category is selected', async () => {
+  it('submits an empty array when no optional product category is selected', async () => {
     const wrapper = mountForm()
     await fillRequiredFields()
 
     await submitForm()
 
-    expect(wrapper.emitted('submit')).toBeUndefined()
-    expect(body().text()).toContain('請至少選擇一項商品分類')
+    expect(wrapper.emitted('submit').at(-1)[0].productCategories).toEqual([])
+    expect(body().text()).not.toContain('請至少選擇一項商品分類')
 
     wrapper.unmount()
   })
@@ -212,7 +212,7 @@ describe('OrderFormModal product category field', () => {
 })
 
 describe('OrderFormModal frontend-only future fields', () => {
-  it('lists multiple attachments, removes one, and excludes future fields from submit', async () => {
+  it('lists multiple attachments, removes one, and includes the persisted order number', async () => {
     const wrapper = mountForm()
     await fillRequiredFields()
     await selectProductCategories(['周邊'])
@@ -233,9 +233,24 @@ describe('OrderFormModal frontend-only future fields', () => {
     expect(body().text()).toContain('photo.jpg')
 
     await submitForm()
-    const payload = wrapper.emitted('submit').at(-1)[0]
-    expect(payload).not.toHaveProperty('orderNumber')
+    const [payload, files] = wrapper.emitted('submit').at(-1)
+    expect(payload.orderNumber).toBe('114-2938471-0038')
     expect(payload).not.toHaveProperty('files')
+    expect(files).toHaveLength(1)
+    expect(files[0]).toBeInstanceOf(File)
+    expect(files[0].name).toBe('photo.jpg')
+    wrapper.unmount()
+  })
+
+  it('shows a failed filename and emits its original File for retry', async () => {
+    const file = new File(['large'], 'large.pdf', { type: 'application/pdf' })
+    const wrapper = mountForm(null, { attachmentStatus: { confirmed: [], failed: [{ file, name: 'large.pdf', message: '檔案過大' }] } })
+
+    expect(body().text()).toContain('large.pdf')
+    expect(body().text()).toContain('檔案過大')
+    await body().find('[data-testid="retry-attachment-0"]').trigger('click')
+
+    expect(wrapper.emitted('retry-attachment')).toEqual([[file]])
     wrapper.unmount()
   })
 
@@ -252,6 +267,20 @@ describe('OrderFormModal frontend-only future fields', () => {
     await wrapper.setProps({ modelValue: true })
     expect(body().find('[data-testid="order-number"]').find('input').element.value).toBe('')
     expect(body().text()).not.toContain('invoice.pdf')
+    wrapper.unmount()
+  })
+})
+
+describe('OrderFormModal amount input', () => {
+  it('uses decimal text input without a spinner and prevents a negative request value', async () => {
+    const wrapper = mountForm()
+    const amount = body().find('input[placeholder="0"]')
+    expect(amount.attributes('type')).toBe('text')
+    expect(amount.attributes('inputmode')).toBe('decimal')
+    await amount.setValue('-6')
+    expect(amount.element.value).not.toContain('-')
+    await amount.setValue('35.29')
+    expect(amount.element.value).toBe('35.29')
     wrapper.unmount()
   })
 })
@@ -313,7 +342,7 @@ describe('OrderFormModal reference surfaces', () => {
 describe('OrderFormModal existing name/amount validation is unaffected', () => {
   it('blocks submission and shows an error when product name is blank', async () => {
     const wrapper = mountForm()
-    await body().find('input[type="number"]').setValue(100)
+    await body().find('input[inputmode="decimal"]').setValue(100)
     await selectProductCategories(['周邊'])
 
     await submitForm()
@@ -327,7 +356,7 @@ describe('OrderFormModal existing name/amount validation is unaffected', () => {
   it('blocks submission and shows an error when amount is zero or negative', async () => {
     const wrapper = mountForm()
     await body().find('input[placeholder="請輸入商品名稱"]').setValue('測試商品')
-    await body().find('input[type="number"]').setValue(0)
+    await body().find('input[inputmode="decimal"]').setValue(0)
     await selectProductCategories(['周邊'])
 
     await submitForm()
@@ -369,7 +398,7 @@ describe('OrderFormModal submits normalized data', () => {
   it('trims surrounding whitespace from the name in the submitted payload', async () => {
     const wrapper = mountForm()
     await body().find('input[placeholder="請輸入商品名稱"]').setValue('  測試商品  ')
-    await body().find('input[type="number"]').setValue(100)
+    await body().find('input[inputmode="decimal"]').setValue(100)
     await selectProductCategories(['周邊'])
 
     await submitForm()

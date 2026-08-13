@@ -5,8 +5,10 @@ import { OrdersRepository } from './orders.repository.js'
 import { OrdersService } from './orders.service.js'
 import { createOrderSchema, idSchema, patchOrderSchema } from './orders.schema.js'
 
-export const ordersRoutes: FastifyPluginAsync = async (app) => {
-  const service = new OrdersService(new OrdersRepository(app.db))
+type Options = { attachmentCleanup?: { removeAllForOrder(orderId: string, userId: string): Promise<void> } }
+
+export const ordersRoutes: FastifyPluginAsync<Options> = async (app, options) => {
+  const service = new OrdersService(new OrdersRepository(app.db), options.attachmentCleanup)
   const parse = <T>(fn: () => T) => { try { return fn() } catch (error) { if (error instanceof ZodError) throw validationError(error.issues); throw error } }
   app.addHook('preHandler', app.authenticate)
   app.get('/', async (request) => { const data = await service.list(request.userId); return { data, meta: { count: data.length } } })

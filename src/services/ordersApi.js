@@ -30,20 +30,21 @@ const parseJson = async (response) => {
 export const createOrdersApi = ({ baseUrl, fetchImpl = fetch, getSession }) => {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
 
-  const request = async (path, { method = 'GET', body, expectedStatus, keepalive = false }) => {
+  const request = async (path, { method = 'GET', body, expectedStatus, keepalive = false, responseType = 'json' }) => {
     const session = await getSession()
     if (!session?.access_token) throw new OrdersApiError('AUTH_UNAUTHORIZED', safeMessages.AUTH_UNAUTHORIZED, 401)
 
     let response
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
     try {
       response = await fetchImpl(`${normalizedBaseUrl}${path}`, {
         method,
         ...(keepalive ? { keepalive: true } : {}),
         headers: {
           Authorization: `Bearer ${session.access_token}`,
-          ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
+          ...(body === undefined || isFormData ? {} : { 'Content-Type': 'application/json' })
         },
-        ...(body === undefined ? {} : { body: JSON.stringify(body) })
+        ...(body === undefined ? {} : { body: isFormData ? body : JSON.stringify(body) })
       })
     } catch {
       throw new OrdersApiError('NETWORK_ERROR', safeMessages.NETWORK_ERROR)
@@ -57,6 +58,7 @@ export const createOrdersApi = ({ baseUrl, fetchImpl = fetch, getSession }) => {
       throw new OrdersApiError(code, message, response.status)
     }
     if (response.status === 204) return undefined
+    if (responseType === 'blob') return response.blob()
     return parseJson(response)
   }
 
@@ -78,6 +80,24 @@ export const createOrdersApi = ({ baseUrl, fetchImpl = fetch, getSession }) => {
     },
     async deleteOrder(id, { keepalive = false } = {}) {
       await request(`/api/orders/${encodeURIComponent(id)}`, { method: 'DELETE', expectedStatus: 204, keepalive })
+    },
+    async listAttachments(orderId) {
+      const payload = await request(`/api/orders/${encodeURIComponent(orderId)}/attachments`, { expectedStatus: 200 })
+      if (!Array.isArray(payload?.data)) throw new OrdersApiError('INVALID_RESPONSE', safeMessages.INVALID_RESPONSE, 200)
+      return payload.data
+    },
+    async uploadAttachment(orderId, file) {
+      const body = new FormData()
+      body.append('file', file)
+      const payload = await request(`/api/orders/${encodeURIComponent(orderId)}/attachments`, { method: 'POST', body, expectedStatus: 201 })
+      if (!payload?.data || typeof payload.data !== 'object' || Array.isArray(payload.data)) throw new OrdersApiError('INVALID_RESPONSE', safeMessages.INVALID_RESPONSE, 201)
+      return payload.data
+    },
+    downloadAttachment(orderId, attachmentId) {
+      return request(`/api/orders/${encodeURIComponent(orderId)}/attachments/${encodeURIComponent(attachmentId)}/download`, { expectedStatus: 200, responseType: 'blob' })
+    },
+    async deleteAttachment(orderId, attachmentId) {
+      await request(`/api/orders/${encodeURIComponent(orderId)}/attachments/${encodeURIComponent(attachmentId)}`, { method: 'DELETE', expectedStatus: 204 })
     }
   }
 }
@@ -97,3 +117,7 @@ export const listOrders = (...args) => getDefaultApi().listOrders(...args)
 export const createOrder = (...args) => getDefaultApi().createOrder(...args)
 export const updateOrder = (...args) => getDefaultApi().updateOrder(...args)
 export const deleteOrder = (...args) => getDefaultApi().deleteOrder(...args)
+export const listAttachments = (...args) => getDefaultApi().listAttachments(...args)
+export const uploadAttachment = (...args) => getDefaultApi().uploadAttachment(...args)
+export const downloadAttachment = (...args) => getDefaultApi().downloadAttachment(...args)
+export const deleteAttachment = (...args) => getDefaultApi().deleteAttachment(...args)

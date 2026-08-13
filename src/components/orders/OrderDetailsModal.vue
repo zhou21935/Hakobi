@@ -28,6 +28,7 @@
       <section data-testid="order-detail-card" class="rounded-card bg-accentcard-from/35 p-5 sm:p-6">
         <h3 class="mb-4 font-heading font-semibold text-ink">訂單資料</h3>
         <dl class="grid min-w-0 grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+          <DetailValue label="訂單號碼" :value="order.orderNumber" />
           <DetailValue label="訂單類別" :value="categoryLabel" />
           <DetailValue label="金額" :value="formattedAmount" />
           <DetailValue label="付款狀態" :value="order.isPaid ? '已付款' : '未付款'" />
@@ -50,6 +51,14 @@
               </Button>
             </dd>
             <p v-if="copyState === 'error'" role="alert" class="mt-2 text-sm text-red-600">複製失敗，請手動選取</p>
+          </div>
+          <div v-if="attachments.length" class="min-w-0 sm:col-span-2">
+            <dt class="text-ink-muted">附件</dt>
+            <dd v-for="attachment in attachments" :key="attachment.id" class="mt-2 flex items-center gap-2 rounded-lg border border-card-border bg-white p-2">
+              <span class="min-w-0 flex-1 truncate">{{ attachment.name }}</span>
+              <Button size="sm" variant="secondary" :aria-label="`下載 ${attachment.name}`" @click="$emit('download-attachment', attachment)">下載</Button>
+              <Button size="sm" variant="secondary" :aria-label="`刪除 ${attachment.name}`" @click="$emit('delete-attachment', attachment)">刪除</Button>
+            </dd>
           </div>
         </dl>
       </section>
@@ -104,9 +113,10 @@ import { CATEGORY_LABELS, PRODUCT_CATEGORY_LABELS, STATUSES } from '@/stores/ord
 
 const props = defineProps({
   modelValue: { type: Boolean, required: true },
-  order: { type: Object, required: true }
+  order: { type: Object, required: true },
+  attachments: { type: Array, default: () => [] }
 })
-const emit = defineEmits(['update:modelValue', 'edit'])
+const emit = defineEmits(['update:modelValue', 'edit', 'download-attachment', 'delete-attachment'])
 
 const copyState = ref('idle')
 let copyResetTimer

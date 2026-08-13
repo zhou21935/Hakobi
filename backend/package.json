@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
+    "@fastify/multipart": "^10.1.0",
+    "@supabase/supabase-js": "^2.112.3",
     "fastify": "^5.4.0",
     "fastify-plugin": "^5.0.1",
     "jose": "^6.0.12",

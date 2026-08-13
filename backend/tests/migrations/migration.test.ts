@@ -102,4 +102,22 @@ describe('migration', () => {
     const original = migration('20260811000000_create_member_profiles.sql')
     expect(original).toContain('username_normalized text not null unique')
   })
+
+  it('persists order numbers, optional product categories, and private owned attachments', () => {
+    const sql = migration('20260813000000_persist_order_number_and_attachments.sql')
+
+    expect(sql).toContain("add column order_number text not null default ''")
+    expect(sql).toContain("alter column product_categories set default '{}'")
+    expect(sql).not.toContain('cardinality(product_categories) > 0')
+    expect(sql).toContain('create table public.order_attachments')
+    expect(sql).toContain('references public.orders(id) on delete cascade')
+    expect(sql).toContain('size_bytes between 1 and 10485760')
+    expect(sql).toContain("mime_type in ('application/pdf', 'image/jpeg', 'image/png')")
+    expect(sql).toContain('create trigger enforce_order_attachment_limit')
+    expect(sql).toContain('for update')
+    expect(sql).toContain("insert into storage.buckets (id, name, public)")
+    expect(sql).toContain("values ('order-attachments', 'order-attachments', false)")
+    expect(sql).toContain('enable row level security')
+    expect(sql.match(/create policy .*order attachments/g)?.length).toBeGreaterThanOrEqual(4)
+  })
 })

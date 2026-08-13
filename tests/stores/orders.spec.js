@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 const api = vi.hoisted(() => ({
-  listOrders: vi.fn(), createOrder: vi.fn(), updateOrder: vi.fn(), deleteOrder: vi.fn()
+  listOrders: vi.fn(), createOrder: vi.fn(), updateOrder: vi.fn(), deleteOrder: vi.fn(),
+  listAttachments: vi.fn(), uploadAttachment: vi.fn(), downloadAttachment: vi.fn(), deleteAttachment: vi.fn()
 }))
 const clearSession = vi.hoisted(() => vi.fn())
 vi.mock('@/services/ordersApi', () => ({ ...api, OrdersApiError: class OrdersApiError extends Error {} }))
@@ -72,6 +73,52 @@ describe('remote loading', () => {
 })
 
 describe('confirmed mutations', () => {
+  it('accepts empty categories and stores the backend-confirmed order number', async () => {
+    const created = order({ orderNumber: 'A-100', productCategories: [] })
+    api.createOrder.mockResolvedValue(created)
+    const store = useOrdersStore()
+
+    await store.addOrder({ category: 'agent', name: 'Book', amount: '35.29', orderNumber: 'A-100', productCategories: [] })
+
+    expect(api.createOrder).toHaveBeenCalledWith(expect.objectContaining({ amount: 35.29, orderNumber: 'A-100', productCategories: [] }))
+    expect(store.orders).toEqual([created])
+  })
+
+  it('retains a confirmed order and records per-file outcomes when attachment uploads partially fail', async () => {
+    const created = order({ id: 'order-a', orderNumber: 'A-100', productCategories: [] })
+    const first = new File(['one'], 'one.pdf', { type: 'application/pdf' })
+    const second = new File(['two'], 'two.pdf', { type: 'application/pdf' })
+    const confirmedAttachment = { id: 'attachment-a', orderId: 'order-a', name: 'one.pdf' }
+    api.createOrder.mockResolvedValue(created)
+    api.uploadAttachment.mockResolvedValueOnce(confirmedAttachment).mockRejectedValueOnce(Object.assign(new Error('檔案過大'), { code: 'ATTACHMENT_TOO_LARGE' }))
+    const store = useOrdersStore()
+
+    await expect(store.addOrder({ category: 'agent', name: 'Book', amount: 10, productCategories: [] }, [first, second])).resolves.toEqual(created)
+
+    expect(store.orders).toEqual([created])
+    expect(store.attachmentStatusFor('order-a')).toMatchObject({
+      confirmed: [confirmedAttachment],
+      failed: [{ file: second, name: 'two.pdf', code: 'ATTACHMENT_TOO_LARGE', message: '檔案過大' }]
+    })
+  })
+
+  it('loads, retries, downloads, and deletes only backend-confirmed attachments', async () => {
+    const file = new File(['pdf'], 'receipt.pdf', { type: 'application/pdf' })
+    const attachment = { id: 'attachment-a', orderId: 'order-a', name: 'receipt.pdf' }
+    api.listAttachments.mockResolvedValue([attachment])
+    api.uploadAttachment.mockResolvedValue(attachment)
+    api.downloadAttachment.mockResolvedValue(new Blob(['pdf']))
+    api.deleteAttachment.mockResolvedValue(undefined)
+    const store = useOrdersStore()
+
+    await store.loadAttachments('order-a')
+    await store.retryAttachment('order-a', file)
+    await expect(store.downloadAttachment('order-a', 'attachment-a')).resolves.toBeInstanceOf(Blob)
+    await store.deleteAttachment('order-a', 'attachment-a')
+
+    expect(store.attachmentStatusFor('order-a').confirmed).toEqual([])
+  })
+
   it('validates locally and adds exactly the server-created UUID order', async () => {
     const created = order({ id: '2b4df07c-4738-4f2e-8f11-8e67687e1057', name: 'Created' })
     api.createOrder.mockResolvedValue(created)

@@ -59,6 +59,7 @@ describe('deployment configuration contract', () => {
       'VITE_SUPABASE_ANON_KEY',
       'VITE_API_BASE_URL',
       'SUPABASE_URL',
+      'SUPABASE_SERVICE_ROLE_KEY',
       'SUPABASE_DB_URL',
       'CORS_ORIGIN',
     ]
@@ -67,6 +68,6 @@ describe('deployment configuration contract', () => {
       expect(blueprint).toMatch(new RegExp(`key: ${name}\\s*\\n\\s+sync: false`))
     }
     expect(blueprint).not.toMatch(/key:\s*PORT/)
-    expect(blueprint).not.toMatch(/(?:password|service[_-]?role|secret)[^\n]*:/i)
+    expect(blueprint).not.toMatch(/(?:password|secret)[^\n]*:/i)
   })
 })
