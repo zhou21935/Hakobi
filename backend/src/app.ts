@@ -8,11 +8,15 @@ import { authPlugin } from './plugins/auth.js'
 import { ordersRoutes } from './modules/orders/orders.routes.js'
 import { AppError } from './shared/errors.js'
 
+const safeStackFrames = (error: unknown) => error instanceof Error
+  ? error.stack?.split('\n').slice(1).filter((line) => /^\s*at\s/.test(line)).slice(0, 8).map((line) => line.trim().slice(0, 500)).join('\n')
+  : undefined
+
 export async function buildApp(config: Config, dependencies: { pool?: Pool; getKey?: JWTVerifyGetKey } = {}) {
   const app = Fastify({ logger: true })
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof AppError) return reply.code(error.statusCode).send({ error: { code: error.code, message: error.message, ...(error.details === undefined ? {} : { details: error.details }) } })
-    app.log.error({ errType: error instanceof Error ? error.name : 'UnknownError' }, 'Unhandled request error')
+    app.log.error({ errType: error instanceof Error ? error.name : 'UnknownError', errStack: safeStackFrames(error) }, 'Unhandled request error')
     return reply.code(500).send({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } })
   })
   await app.register(cors, {
