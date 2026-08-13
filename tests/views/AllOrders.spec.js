@@ -17,6 +17,8 @@ beforeEach(() => {
   store.initialized = true
   store.orders = [order()]
   vi.clearAllMocks()
+  api.deleteOrder.mockReset()
+  localStorage.clear()
 })
 afterEach(() => { document.body.innerHTML = '' })
 
@@ -139,6 +141,19 @@ describe('AllOrders delete undo integration', () => {
     await body().findAll('button').find((button) => button.text() === '刪除').trigger('click')
     wrapper.unmount()
     await flushPromises()
-    expect(api.deleteOrder).toHaveBeenCalledWith('order-a', { keepalive: false })
+    expect(api.deleteOrder).toHaveBeenCalledWith('order-a', { keepalive: true })
+  })
+
+  it('uses a keepalive deletion when a mobile browser hides or closes the page', async () => {
+    api.deleteOrder.mockResolvedValue(undefined)
+    const wrapper = mount(AllOrders, { attachTo: document.body })
+    await wrapper.get('button[aria-label="刪除"]').trigger('click')
+    await body().findAll('button').find((button) => button.text() === '刪除').trigger('click')
+
+    window.dispatchEvent(new Event('pagehide'))
+    await flushPromises()
+
+    expect(api.deleteOrder).toHaveBeenCalledWith('order-a', { keepalive: true })
+    wrapper.unmount()
   })
 })

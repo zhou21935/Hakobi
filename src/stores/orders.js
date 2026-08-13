@@ -4,6 +4,30 @@ import { normalizeOrderInput, validateOrder } from '@/domain/orderValidation'
 import * as ordersApi from '@/services/ordersApi'
 import { useAuthStore } from '@/stores/auth'
 
+const PENDING_DELETE_STORAGE_KEY = 'hakobi.pending-order-deletes'
+
+const readPersistedDeleteIds = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PENDING_DELETE_STORAGE_KEY) || '[]')
+    return Array.isArray(parsed) ? [...new Set(parsed.filter((id) => typeof id === 'string' && id.length > 0))] : []
+  } catch {
+    return []
+  }
+}
+
+const writePersistedDeleteIds = (ids) => {
+  try {
+    if (ids.length > 0) localStorage.setItem(PENDING_DELETE_STORAGE_KEY, JSON.stringify(ids))
+    else localStorage.removeItem(PENDING_DELETE_STORAGE_KEY)
+    return true
+  } catch {
+    return false
+  }
+}
+
+const persistDeleteId = (id) => writePersistedDeleteIds([...new Set([...readPersistedDeleteIds(), id])])
+const forgetDeleteId = (id) => writePersistedDeleteIds(readPersistedDeleteIds().filter((storedId) => storedId !== id))
+
 export const CATEGORIES = {
   AGENT: 'agent',
   PARCEL: 'parcel'
@@ -68,7 +92,10 @@ export const useOrdersStore = defineStore('orders', () => {
     isLoading.value = true
     error.value = null
     try {
-      orders.value = await ordersApi.listOrders()
+      const deletionIdsAtLoadStart = readPersistedDeleteIds()
+      await finalizePersistedDeletes()
+      const persistedDeleteIds = new Set([...deletionIdsAtLoadStart, ...readPersistedDeleteIds()])
+      orders.value = (await ordersApi.listOrders()).filter(({ id }) => !persistedDeleteIds.has(id))
     } catch (caught) {
       throw storeError(caught)
     } finally {
@@ -84,6 +111,17 @@ export const useOrdersStore = defineStore('orders', () => {
     isMutating.value = true
     error.value = null
     try { return await operation() } catch (caught) { throw storeError(caught) } finally { isMutating.value = false }
+  }
+
+  const finalizePersistedDeletes = async () => {
+    await Promise.all(readPersistedDeleteIds().map(async (id) => {
+      try {
+        await ordersApi.deleteOrder(id, { keepalive: true })
+        forgetDeleteId(id)
+      } catch (caught) {
+        if (caught?.status === 404) forgetDeleteId(id)
+      }
+    }))
   }
 
   const uploadFiles = async (orderId, files) => {
@@ -169,16 +207,20 @@ export const useOrdersStore = defineStore('orders', () => {
     })
   }
 
-  const finalizePendingDelete = async ({ keepalive = false } = {}) => {
+  const finalizePendingDelete = async ({ keepalive = false, restoreOnFailure = !keepalive } = {}) => {
     if (!pendingDelete.value) return
     const snapshot = pendingDelete.value
     pendingDelete.value = null
     attachmentStatuses.value = {}
     try {
       await mutate(() => ordersApi.deleteOrder(snapshot.order.id, { keepalive }))
+      forgetDeleteId(snapshot.order.id)
     } catch (caught) {
-      const restoreAt = Math.min(snapshot.index, orders.value.length)
-      if (!orders.value.some(({ id }) => id === snapshot.order.id)) orders.value.splice(restoreAt, 0, snapshot.order)
+      if (restoreOnFailure) {
+        forgetDeleteId(snapshot.order.id)
+        const restoreAt = Math.min(snapshot.index, orders.value.length)
+        if (!orders.value.some(({ id }) => id === snapshot.order.id)) orders.value.splice(restoreAt, 0, snapshot.order)
+      }
       throw caught
     }
   }
@@ -188,6 +230,10 @@ export const useOrdersStore = defineStore('orders', () => {
     const index = orders.value.findIndex(order => order.id === id)
     if (index === -1) throw localError('ORDER_NOT_FOUND', '找不到訂單')
     const [order] = orders.value.splice(index, 1)
+    if (!persistDeleteId(order.id)) {
+      orders.value.splice(index, 0, order)
+      throw localError('DELETE_PERSIST_FAILED', '無法建立可復原的刪除狀態')
+    }
     pendingDelete.value = { order, index }
   }
 
@@ -195,6 +241,7 @@ export const useOrdersStore = defineStore('orders', () => {
     if (!pendingDelete.value) return false
     const { order, index } = pendingDelete.value
     pendingDelete.value = null
+    forgetDeleteId(order.id)
     if (!orders.value.some(({ id }) => id === order.id)) orders.value.splice(Math.min(index, orders.value.length), 0, order)
     return true
   }

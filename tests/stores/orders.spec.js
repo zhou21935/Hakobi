@@ -22,6 +22,8 @@ const order = (overrides = {}) => ({
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
+  api.deleteOrder.mockReset()
+  localStorage.clear()
 })
 
 describe('order constants', () => {
@@ -183,13 +185,43 @@ describe('view-scoped delete undo', () => {
     const activeA = store.orders[0]
 
     await store.stageDelete('order-a')
+    expect(JSON.parse(localStorage.getItem('hakobi.pending-order-deletes'))).toEqual(['order-a'])
     expect(store.orders.map(({ id }) => id)).toEqual(['order-b'])
     expect(store.pendingDelete.order).toBe(activeA)
     store.undoDelete()
     expect(store.orders[0]).toBe(activeA)
     expect(store.orders).toEqual([a, b])
     expect(store.pendingDelete).toBeNull()
+    expect(localStorage.getItem('hakobi.pending-order-deletes')).toBeNull()
     expect(api.deleteOrder).not.toHaveBeenCalled()
+  })
+
+  it('finalizes persisted deletions before reload data can reappear', async () => {
+    localStorage.setItem('hakobi.pending-order-deletes', JSON.stringify(['order-a']))
+    api.deleteOrder.mockResolvedValue(undefined)
+    api.listOrders.mockResolvedValue([order({ id: 'order-a' }), order({ id: 'order-b' })])
+    const store = useOrdersStore()
+
+    await store.loadOrders()
+
+    expect(api.deleteOrder).toHaveBeenCalledWith('order-a', { keepalive: true })
+    expect(store.orders.map(({ id }) => id)).toEqual(['order-b'])
+    expect(localStorage.getItem('hakobi.pending-order-deletes')).toBeNull()
+  })
+
+  it('keeps failed persisted deletions hidden and retries them on a later load', async () => {
+    localStorage.setItem('hakobi.pending-order-deletes', JSON.stringify(['order-a']))
+    api.deleteOrder.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined)
+    api.listOrders.mockResolvedValue([order({ id: 'order-a' }), order({ id: 'order-b' })])
+    const store = useOrdersStore()
+
+    await store.loadOrders()
+    expect(store.orders.map(({ id }) => id)).toEqual(['order-b'])
+    expect(JSON.parse(localStorage.getItem('hakobi.pending-order-deletes'))).toEqual(['order-a'])
+
+    await store.loadOrders()
+    expect(api.deleteOrder).toHaveBeenCalledTimes(2)
+    expect(localStorage.getItem('hakobi.pending-order-deletes')).toBeNull()
   })
 
   it('finalizes the first pending order exactly once before staging a second', async () => {
@@ -204,18 +236,19 @@ describe('view-scoped delete undo', () => {
     expect(store.pendingDelete.order.id).toBe('order-b')
   })
 
-  it('restores confirmed state when finalization fails and forwards keepalive safely', async () => {
+  it('keeps a permanent deletion hidden for retry when keepalive finalization fails', async () => {
     const confirmed = order({ id: 'order-a' })
     api.listOrders.mockResolvedValue([confirmed])
     api.deleteOrder.mockRejectedValue(new Error('delete failed'))
     const store = useOrdersStore()
     await store.loadOrders()
     await store.stageDelete('order-a')
-    await expect(store.finalizePendingDelete({ keepalive: true })).rejects.toThrow('delete failed')
+    await expect(store.finalizePendingDelete({ keepalive: true, restoreOnFailure: false })).rejects.toThrow('delete failed')
     expect(api.deleteOrder).toHaveBeenCalledWith('order-a', { keepalive: true })
-    expect(store.orders).toEqual([confirmed])
+    expect(store.orders).toEqual([])
     expect(store.pendingDelete).toBeNull()
     expect(store.error).toBe('delete failed')
+    expect(JSON.parse(localStorage.getItem('hakobi.pending-order-deletes'))).toEqual(['order-a'])
   })
 })
 

@@ -73,6 +73,7 @@ const categoryLabel = computed(() => CATEGORY_LABELS[category.value] || category
 const store = useOrdersStore()
 onMounted(() => {
   if (!store.initialized && !store.isLoading) store.loadOrders().catch(() => {})
+  window.addEventListener('pagehide', finalizeOnPageExit)
 })
 const retryLoad = () => store.retry().catch(() => {})
 
@@ -157,7 +158,11 @@ const confirmDelete = async () => {
   } catch {}
 }
 
-onBeforeUnmount(() => { store.finalizePendingDelete().catch(() => {}) })
+const finalizeOnPageExit = () => store.finalizePendingDelete({ keepalive: true, restoreOnFailure: false }).catch(() => {})
+onBeforeUnmount(() => {
+  window.removeEventListener('pagehide', finalizeOnPageExit)
+  finalizeOnPageExit()
+})
 
 const openEditFromDetails = (order) => {
   isDetailsOpen.value = false
