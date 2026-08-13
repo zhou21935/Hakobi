@@ -7,88 +7,151 @@ TBD - created by archiving change 'add-supabase-backend'. Update Purpose after a
 ## Requirements
 
 ### Requirement: Orders are persisted with validated ownership and values
-The database SHALL persist orders with a UUID primary key, an owning `user_id` referencing `auth.users`, constrained category, status, currency, positive amount, non-empty allowed product categories, timestamps, and documented defaults. The API MUST assign ownership from the authenticated caller and MUST NOT accept caller-selected ownership.
 
-#### Scenario: Valid order is created
-- **WHEN** an authenticated user submits category `agent`, name `Book`, amount `120.50`, and product categories `["book"]`
-- **THEN** the backend SHALL persist an order owned by that user's JWT subject and return HTTP 201 with the created camelCase order
+The database SHALL persist orders with a UUID primary key, owning `user_id`, constrained category, status and currency, positive amount, an optional validated product category array, and an order number of at most 200 characters defaulting to an empty string. The API MUST assign ownership from the authenticated caller and MUST NOT accept caller-selected ownership.
+
+#### Scenario: Valid order with no product categories is created
+
+- **WHEN** an authenticated user submits category `agent`, name `Book`, amount `120.50`, `productCategories: []`, and order number `114-2938471-0038`
+- **THEN** the backend SHALL persist an owned order and return HTTP 201 with the order number and empty category array
 
 #### Scenario: Invalid order is rejected
-- **WHEN** create input has a blank name, non-positive amount, unsupported category, status, currency, or an empty or unsupported product category list
-- **THEN** the backend SHALL return HTTP 400 with error code `VALIDATION_ERROR` and SHALL NOT persist a row
+
+- **WHEN** create input has a blank name, non-positive amount, unsupported category, status, currency, unsupported product category, or order number longer than 200 characters
+- **THEN** the backend SHALL return HTTP 400 with code `VALIDATION_ERROR`
+- **AND** it SHALL NOT persist a row
 
 
 <!-- @trace
-source: add-supabase-backend
-updated: 2026-07-30
+source: persist-order-number-and-attachments
+updated: 2026-08-13
 code:
-  - server/src/plugins/database.ts
-  - server/src/config.ts
-  - server/.env.example
-  - supabase/migrations/20260730000000_create_orders.sql
-  - server/src/modules/orders/orders.schema.ts
-  - vite.config.js
-  - server/src/modules/orders/orders.routes.ts
-  - server/tsconfig.json
-  - docs/supabase-setup.md
-  - server/src/modules/orders/orders.mapper.ts
-  - server/package.json
-  - server/src/modules/orders/orders.repository.ts
-  - server/src/modules/orders/orders.service.ts
-  - server/src/index.ts
-  - server/tsconfig.build.json
-  - server/vitest.config.ts
-  - server/src/app.ts
-  - server/src/plugins/auth.ts
-  - README.md
-  - server/src/shared/errors.ts
+  - backend/package.json
+  - backend/src/modules/order-attachments/order-attachments.repository.ts
+  - backend/src/modules/orders/orders.mapper.ts
+  - backend/src/app.ts
+  - backend/src/modules/order-attachments/order-attachments.mapper.ts
+  - .agents/skills/spectra-discuss/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
+  - backend/src/shared/errors.ts
+  - .agents/skills/spectra-apply/SKILL.md
+  - backend/src/modules/orders/orders.service.ts
+  - .agents/skills/spectra-archive/SKILL.md
+  - backend/src/modules/orders/orders.routes.ts
+  - backend/src/modules/orders/orders.schema.ts
+  - src/components/ui/Input.vue
+  - backend/src/modules/order-attachments/order-attachments.storage.ts
+  - backend/src/modules/order-attachments/order-attachments.service.ts
+  - .agents/skills/spectra-ask/SKILL.md
+  - supabase/migrations/20260813000000_persist_order_number_and_attachments.sql
+  - src/views/AllOrders.vue
+  - render.yaml
+  - src/views/OrderList.vue
+  - backend/src/modules/order-attachments/order-attachments.routes.ts
+  - .agents/skills/spectra-drift/SKILL.md
+  - .agents/skills/spectra-commit/SKILL.md
+  - .agents/skills/spectra-propose/SKILL.md
+  - src/services/ordersApi.js
+  - supabase/.temp/start-secrets/supabase_edge_runtime_Hakobi/main/index.ts
+  - .agents/skills/spectra-audit/SKILL.md
+  - src/components/orders/OrderFormModal.vue
+  - .agents/skills/spectra-debug/SKILL.md
+  - backend/src/config.ts
+  - src/domain/orderValidation.js
+  - src/components/orders/OrderDetailsModal.vue
+  - src/stores/orders.js
 tests:
-  - server/src/config.test.ts
-  - server/src/migration.test.ts
-  - server/src/modules/orders/orders.mapper.test.ts
-  - server/src/app.test.ts
-  - server/src/modules/orders/orders.repository.test.ts
+  - scripts/tests/deploymentConfig.spec.js
+  - backend/tests/order-attachments/order-attachments.service.test.ts
+  - backend/tests/migrations/migration.test.ts
+  - backend/tests/config/config.test.ts
+  - backend/tests/orders/orders.repository.test.ts
+  - backend/tests/orders/orders.service.test.ts
+  - tests/views/AllOrders.spec.js
+  - tests/services/ordersApi.spec.js
+  - tests/components/orders/OrderDetailsModal.spec.js
+  - tests/components/orders/OrderFormModal.spec.js
+  - backend/tests/orders/orders.mapper.test.ts
+  - backend/tests/order-attachments/order-attachments.routes.test.ts
+  - tests/stores/orders.spec.js
+  - backend/tests/order-attachments/order-attachments.storage.test.ts
+  - tests/domain/orderValidation.spec.js
+  - backend/tests/app/app.test.ts
+  - tests/views/OrderList.spec.js
 -->
 
 ---
 ### Requirement: Order responses use the stable public shape
-The API SHALL map PostgreSQL snake_case rows to camelCase JSON and SHALL return every documented order field while excluding `userId`. Date-only values SHALL be `YYYY-MM-DD` or null, timestamps SHALL be ISO 8601 strings, and numeric amounts SHALL be JSON numbers.
 
-#### Scenario: Database row is mapped to API JSON
-- **WHEN** a stored row contains `product_url`, `is_paid`, `product_categories`, `created_at`, and `user_id`
-- **THEN** the response SHALL contain `productUrl`, `isPaid`, `productCategories`, and `createdAt`, SHALL omit `userId`, and SHALL not expose snake_case keys
+Every order response SHALL use camelCase and SHALL include `orderNumber: string` and `productCategories: string[]`. Existing rows SHALL map a missing order number to an empty string, and database-only ownership or storage fields MUST NOT appear in the public order shape.
+
+#### Scenario: Order row is mapped
+
+- **WHEN** an order row contains `order_number = '114-2938471-0038'` and an empty `product_categories` array
+- **THEN** the public response SHALL contain `orderNumber: '114-2938471-0038'` and `productCategories: []`
+
+#### Scenario: Stable shape excludes internal fields
+
+- **WHEN** an order or attachment resource is returned
+- **THEN** it SHALL NOT expose `user_id`, `storage_path`, or server credentials
 
 
 <!-- @trace
-source: add-supabase-backend
-updated: 2026-07-30
+source: persist-order-number-and-attachments
+updated: 2026-08-13
 code:
-  - server/src/plugins/database.ts
-  - server/src/config.ts
-  - server/.env.example
-  - supabase/migrations/20260730000000_create_orders.sql
-  - server/src/modules/orders/orders.schema.ts
-  - vite.config.js
-  - server/src/modules/orders/orders.routes.ts
-  - server/tsconfig.json
-  - docs/supabase-setup.md
-  - server/src/modules/orders/orders.mapper.ts
-  - server/package.json
-  - server/src/modules/orders/orders.repository.ts
-  - server/src/modules/orders/orders.service.ts
-  - server/src/index.ts
-  - server/tsconfig.build.json
-  - server/vitest.config.ts
-  - server/src/app.ts
-  - server/src/plugins/auth.ts
-  - README.md
-  - server/src/shared/errors.ts
+  - backend/package.json
+  - backend/src/modules/order-attachments/order-attachments.repository.ts
+  - backend/src/modules/orders/orders.mapper.ts
+  - backend/src/app.ts
+  - backend/src/modules/order-attachments/order-attachments.mapper.ts
+  - .agents/skills/spectra-discuss/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
+  - backend/src/shared/errors.ts
+  - .agents/skills/spectra-apply/SKILL.md
+  - backend/src/modules/orders/orders.service.ts
+  - .agents/skills/spectra-archive/SKILL.md
+  - backend/src/modules/orders/orders.routes.ts
+  - backend/src/modules/orders/orders.schema.ts
+  - src/components/ui/Input.vue
+  - backend/src/modules/order-attachments/order-attachments.storage.ts
+  - backend/src/modules/order-attachments/order-attachments.service.ts
+  - .agents/skills/spectra-ask/SKILL.md
+  - supabase/migrations/20260813000000_persist_order_number_and_attachments.sql
+  - src/views/AllOrders.vue
+  - render.yaml
+  - src/views/OrderList.vue
+  - backend/src/modules/order-attachments/order-attachments.routes.ts
+  - .agents/skills/spectra-drift/SKILL.md
+  - .agents/skills/spectra-commit/SKILL.md
+  - .agents/skills/spectra-propose/SKILL.md
+  - src/services/ordersApi.js
+  - supabase/.temp/start-secrets/supabase_edge_runtime_Hakobi/main/index.ts
+  - .agents/skills/spectra-audit/SKILL.md
+  - src/components/orders/OrderFormModal.vue
+  - .agents/skills/spectra-debug/SKILL.md
+  - backend/src/config.ts
+  - src/domain/orderValidation.js
+  - src/components/orders/OrderDetailsModal.vue
+  - src/stores/orders.js
 tests:
-  - server/src/config.test.ts
-  - server/src/migration.test.ts
-  - server/src/modules/orders/orders.mapper.test.ts
-  - server/src/app.test.ts
-  - server/src/modules/orders/orders.repository.test.ts
+  - scripts/tests/deploymentConfig.spec.js
+  - backend/tests/order-attachments/order-attachments.service.test.ts
+  - backend/tests/migrations/migration.test.ts
+  - backend/tests/config/config.test.ts
+  - backend/tests/orders/orders.repository.test.ts
+  - backend/tests/orders/orders.service.test.ts
+  - tests/views/AllOrders.spec.js
+  - tests/services/ordersApi.spec.js
+  - tests/components/orders/OrderDetailsModal.spec.js
+  - tests/components/orders/OrderFormModal.spec.js
+  - backend/tests/orders/orders.mapper.test.ts
+  - backend/tests/order-attachments/order-attachments.routes.test.ts
+  - tests/stores/orders.spec.js
+  - backend/tests/order-attachments/order-attachments.storage.test.ts
+  - tests/domain/orderValidation.spec.js
+  - backend/tests/app/app.test.ts
+  - tests/views/OrderList.spec.js
 -->
 
 ---
@@ -183,51 +246,76 @@ tests:
 
 ---
 ### Requirement: Users can partially update an owned order
-`PATCH /api/orders/:id` SHALL accept at least one editable order field, reject unknown and immutable fields, validate the complete resulting order, and update only a row whose ID and `user_id` match the authenticated caller.
 
-#### Scenario: Owner updates one field
-- **WHEN** an owner patches an existing order with `{ "isPaid": true }`
-- **THEN** the backend SHALL retain all other values, update the timestamp, and return HTTP 200 with the updated order
+An authenticated user SHALL be able to patch any supported editable order field, including `orderNumber` and an empty `productCategories` array, for an order they own. The backend SHALL reject an empty patch and invalid values, and SHALL return the same not-found response for absent and non-owned orders.
 
-#### Scenario: Empty or immutable patch
-- **WHEN** a caller submits an empty patch or includes `id`, `userId`, `createdAt`, or `updatedAt`
-- **THEN** the backend SHALL return HTTP 400 with error code `VALIDATION_ERROR` and SHALL NOT change the order
+#### Scenario: Order number and categories are updated
 
-#### Scenario: Update targets another user's order
-- **WHEN** an authenticated user patches an order owned by another user
-- **THEN** the backend SHALL return HTTP 404 with error code `ORDER_NOT_FOUND` and SHALL NOT change the row
+- **WHEN** an owner patches `{ "orderNumber": "A-100", "productCategories": [] }`
+- **THEN** the backend SHALL return the updated order with those confirmed values
+
+#### Scenario: Non-owner update is concealed
+
+- **WHEN** a user patches another user's order
+- **THEN** the backend SHALL return HTTP 404 with code `RESOURCE_NOT_FOUND`
 
 
 <!-- @trace
-source: add-supabase-backend
-updated: 2026-07-30
+source: persist-order-number-and-attachments
+updated: 2026-08-13
 code:
-  - server/src/plugins/database.ts
-  - server/src/config.ts
-  - server/.env.example
-  - supabase/migrations/20260730000000_create_orders.sql
-  - server/src/modules/orders/orders.schema.ts
-  - vite.config.js
-  - server/src/modules/orders/orders.routes.ts
-  - server/tsconfig.json
-  - docs/supabase-setup.md
-  - server/src/modules/orders/orders.mapper.ts
-  - server/package.json
-  - server/src/modules/orders/orders.repository.ts
-  - server/src/modules/orders/orders.service.ts
-  - server/src/index.ts
-  - server/tsconfig.build.json
-  - server/vitest.config.ts
-  - server/src/app.ts
-  - server/src/plugins/auth.ts
-  - README.md
-  - server/src/shared/errors.ts
+  - backend/package.json
+  - backend/src/modules/order-attachments/order-attachments.repository.ts
+  - backend/src/modules/orders/orders.mapper.ts
+  - backend/src/app.ts
+  - backend/src/modules/order-attachments/order-attachments.mapper.ts
+  - .agents/skills/spectra-discuss/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
+  - backend/src/shared/errors.ts
+  - .agents/skills/spectra-apply/SKILL.md
+  - backend/src/modules/orders/orders.service.ts
+  - .agents/skills/spectra-archive/SKILL.md
+  - backend/src/modules/orders/orders.routes.ts
+  - backend/src/modules/orders/orders.schema.ts
+  - src/components/ui/Input.vue
+  - backend/src/modules/order-attachments/order-attachments.storage.ts
+  - backend/src/modules/order-attachments/order-attachments.service.ts
+  - .agents/skills/spectra-ask/SKILL.md
+  - supabase/migrations/20260813000000_persist_order_number_and_attachments.sql
+  - src/views/AllOrders.vue
+  - render.yaml
+  - src/views/OrderList.vue
+  - backend/src/modules/order-attachments/order-attachments.routes.ts
+  - .agents/skills/spectra-drift/SKILL.md
+  - .agents/skills/spectra-commit/SKILL.md
+  - .agents/skills/spectra-propose/SKILL.md
+  - src/services/ordersApi.js
+  - supabase/.temp/start-secrets/supabase_edge_runtime_Hakobi/main/index.ts
+  - .agents/skills/spectra-audit/SKILL.md
+  - src/components/orders/OrderFormModal.vue
+  - .agents/skills/spectra-debug/SKILL.md
+  - backend/src/config.ts
+  - src/domain/orderValidation.js
+  - src/components/orders/OrderDetailsModal.vue
+  - src/stores/orders.js
 tests:
-  - server/src/config.test.ts
-  - server/src/migration.test.ts
-  - server/src/modules/orders/orders.mapper.test.ts
-  - server/src/app.test.ts
-  - server/src/modules/orders/orders.repository.test.ts
+  - scripts/tests/deploymentConfig.spec.js
+  - backend/tests/order-attachments/order-attachments.service.test.ts
+  - backend/tests/migrations/migration.test.ts
+  - backend/tests/config/config.test.ts
+  - backend/tests/orders/orders.repository.test.ts
+  - backend/tests/orders/orders.service.test.ts
+  - tests/views/AllOrders.spec.js
+  - tests/services/ordersApi.spec.js
+  - tests/components/orders/OrderDetailsModal.spec.js
+  - tests/components/orders/OrderFormModal.spec.js
+  - backend/tests/orders/orders.mapper.test.ts
+  - backend/tests/order-attachments/order-attachments.routes.test.ts
+  - tests/stores/orders.spec.js
+  - backend/tests/order-attachments/order-attachments.storage.test.ts
+  - tests/domain/orderValidation.spec.js
+  - backend/tests/app/app.test.ts
+  - tests/views/OrderList.spec.js
 -->
 
 ---
@@ -322,43 +410,76 @@ tests:
 
 ---
 ### Requirement: Database schema enforces ownership and query performance
-The migration MUST create `public.orders`, its constraints, owner-oriented indexes, automatic `updated_at` maintenance, enabled Row Level Security, and authenticated owner policies for select, insert, update, and delete.
 
-#### Scenario: Migration contract is inspected
-- **WHEN** the migration is validated
-- **THEN** it SHALL contain a `user_id` foreign key with cascade deletion, an index beginning with `user_id`, data checks, an updated timestamp trigger, enabled RLS, and four policies comparing the authenticated user to row ownership
+The database SHALL keep orders protected by row-level ownership policies and indexed owner queries. It SHALL store `order_number` as non-null text defaulting to empty, SHALL allow an empty `product_categories` array, and SHALL constrain every non-empty category value to `merch`, `book`, or `other`.
+
+#### Scenario: Empty categories satisfy database constraints
+
+- **WHEN** an owned order row is inserted with `product_categories = '{}'`
+- **THEN** the database SHALL accept the row
+
+#### Scenario: Unsupported category violates constraints
+
+- **WHEN** a row includes a product category outside the supported set
+- **THEN** the database SHALL reject the row
 
 
 <!-- @trace
-source: add-supabase-backend
-updated: 2026-07-30
+source: persist-order-number-and-attachments
+updated: 2026-08-13
 code:
-  - server/src/plugins/database.ts
-  - server/src/config.ts
-  - server/.env.example
-  - supabase/migrations/20260730000000_create_orders.sql
-  - server/src/modules/orders/orders.schema.ts
-  - vite.config.js
-  - server/src/modules/orders/orders.routes.ts
-  - server/tsconfig.json
-  - docs/supabase-setup.md
-  - server/src/modules/orders/orders.mapper.ts
-  - server/package.json
-  - server/src/modules/orders/orders.repository.ts
-  - server/src/modules/orders/orders.service.ts
-  - server/src/index.ts
-  - server/tsconfig.build.json
-  - server/vitest.config.ts
-  - server/src/app.ts
-  - server/src/plugins/auth.ts
-  - README.md
-  - server/src/shared/errors.ts
+  - backend/package.json
+  - backend/src/modules/order-attachments/order-attachments.repository.ts
+  - backend/src/modules/orders/orders.mapper.ts
+  - backend/src/app.ts
+  - backend/src/modules/order-attachments/order-attachments.mapper.ts
+  - .agents/skills/spectra-discuss/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
+  - backend/src/shared/errors.ts
+  - .agents/skills/spectra-apply/SKILL.md
+  - backend/src/modules/orders/orders.service.ts
+  - .agents/skills/spectra-archive/SKILL.md
+  - backend/src/modules/orders/orders.routes.ts
+  - backend/src/modules/orders/orders.schema.ts
+  - src/components/ui/Input.vue
+  - backend/src/modules/order-attachments/order-attachments.storage.ts
+  - backend/src/modules/order-attachments/order-attachments.service.ts
+  - .agents/skills/spectra-ask/SKILL.md
+  - supabase/migrations/20260813000000_persist_order_number_and_attachments.sql
+  - src/views/AllOrders.vue
+  - render.yaml
+  - src/views/OrderList.vue
+  - backend/src/modules/order-attachments/order-attachments.routes.ts
+  - .agents/skills/spectra-drift/SKILL.md
+  - .agents/skills/spectra-commit/SKILL.md
+  - .agents/skills/spectra-propose/SKILL.md
+  - src/services/ordersApi.js
+  - supabase/.temp/start-secrets/supabase_edge_runtime_Hakobi/main/index.ts
+  - .agents/skills/spectra-audit/SKILL.md
+  - src/components/orders/OrderFormModal.vue
+  - .agents/skills/spectra-debug/SKILL.md
+  - backend/src/config.ts
+  - src/domain/orderValidation.js
+  - src/components/orders/OrderDetailsModal.vue
+  - src/stores/orders.js
 tests:
-  - server/src/config.test.ts
-  - server/src/migration.test.ts
-  - server/src/modules/orders/orders.mapper.test.ts
-  - server/src/app.test.ts
-  - server/src/modules/orders/orders.repository.test.ts
+  - scripts/tests/deploymentConfig.spec.js
+  - backend/tests/order-attachments/order-attachments.service.test.ts
+  - backend/tests/migrations/migration.test.ts
+  - backend/tests/config/config.test.ts
+  - backend/tests/orders/orders.repository.test.ts
+  - backend/tests/orders/orders.service.test.ts
+  - tests/views/AllOrders.spec.js
+  - tests/services/ordersApi.spec.js
+  - tests/components/orders/OrderDetailsModal.spec.js
+  - tests/components/orders/OrderFormModal.spec.js
+  - backend/tests/orders/orders.mapper.test.ts
+  - backend/tests/order-attachments/order-attachments.routes.test.ts
+  - tests/stores/orders.spec.js
+  - backend/tests/order-attachments/order-attachments.storage.test.ts
+  - tests/domain/orderValidation.spec.js
+  - backend/tests/app/app.test.ts
+  - tests/views/OrderList.spec.js
 -->
 
 ---

@@ -1,29 +1,27 @@
-# order-validation Specification
+# order-attachments Specification
 
 ## Purpose
 
-TBD - created by archiving change 'centralize-order-validation'. Update Purpose after archive.
+TBD - created by archiving change 'persist-order-number-and-attachments'. Update Purpose after archive.
 
 ## Requirements
 
-### Requirement: Order validation rules have a single shared source
+### Requirement: Owned orders support private attachments
 
-The system SHALL define order name and positive amount validation in exactly one shared frontend module and SHALL apply that module from both the order create/edit form and orders store write operations. Product categories SHALL normalize to an array and SHALL be valid when empty or when every value belongs to `merch`, `book`, or `other`.
+The system SHALL store order attachments in a private Supabase Storage bucket and SHALL persist attachment metadata separately from order rows. Every attachment operation MUST derive the caller identity from authentication and MUST verify ownership of the parent order before accessing Storage.
 
-#### Scenario: Form and store apply identical core rules
+#### Scenario: Owner uploads an allowed attachment
 
-- **WHEN** the same order data with an empty name or non-positive amount is evaluated through the form and a direct store write
-- **THEN** both SHALL reject it using the same field error identification
+- **GIVEN** an authenticated user owns an order with fewer than 10 attachments
+- **WHEN** the user uploads one PDF, JPEG, or PNG file between 1 byte and 10,485,760 bytes
+- **THEN** the backend SHALL store the object under a server-generated path
+- **AND** it SHALL return HTTP 201 with public attachment metadata that excludes the storage path
 
-#### Scenario: Empty product category array is valid
+#### Scenario: Another user targets an attachment
 
-- **WHEN** order data contains `productCategories: []`
-- **THEN** both the form and store validation SHALL accept the category field
-
-#### Scenario: Unsupported product category is invalid
-
-- **WHEN** order data contains `productCategories: ["unsupported"]`
-- **THEN** both the form and store validation SHALL reject the category field
+- **WHEN** an authenticated user attempts to list, download, or delete an attachment belonging to another user's order
+- **THEN** the backend SHALL return HTTP 404 with code `RESOURCE_NOT_FOUND`
+- **AND** it SHALL NOT reveal whether the order, attachment, or object exists
 
 
 <!-- @trace
@@ -85,123 +83,27 @@ tests:
 -->
 
 ---
-### Requirement: Orders store rejects invalid data on write
+### Requirement: Attachment limits are enforced at trusted boundaries
 
-The orders store SHALL reject a write when the merged order has an empty name, a non-finite or non-positive amount, or an unsupported product category. It SHALL allow an empty product category array and SHALL NOT issue an API mutation for rejected data.
+The backend and database SHALL allow only `application/pdf`, `image/jpeg`, and `image/png`, SHALL reject empty files and files larger than 10,485,760 bytes, and SHALL prevent an order from owning more than 10 attachment metadata rows even under concurrent requests.
 
-#### Scenario: Invalid core data is rejected
+#### Scenario: Invalid file type is rejected
 
-- **WHEN** add or update receives an empty name, `0`, `-6`, a non-numeric amount, or an unsupported product category
-- **THEN** the store SHALL NOT issue the corresponding API request
+- **WHEN** a user uploads `notes.txt` with MIME type `text/plain`
+- **THEN** the backend SHALL return HTTP 400 with code `ATTACHMENT_TYPE_NOT_ALLOWED`
+- **AND** it SHALL create neither a Storage object nor metadata
 
-#### Scenario: Optional categories are accepted
+#### Scenario: Oversized file is rejected
 
-- **WHEN** add or update receives a non-empty name, positive amount, and `productCategories: []`
-- **THEN** the store SHALL issue the API mutation
+- **WHEN** a file exceeds 10,485,760 bytes
+- **THEN** the backend SHALL terminate the upload and return HTTP 413 with code `ATTACHMENT_TOO_LARGE`
 
+#### Scenario: Concurrent requests exceed the count limit
 
-<!-- @trace
-source: persist-order-number-and-attachments
-updated: 2026-08-13
-code:
-  - backend/package.json
-  - backend/src/modules/order-attachments/order-attachments.repository.ts
-  - backend/src/modules/orders/orders.mapper.ts
-  - backend/src/app.ts
-  - backend/src/modules/order-attachments/order-attachments.mapper.ts
-  - .agents/skills/spectra-discuss/SKILL.md
-  - .agents/skills/spectra-ingest/SKILL.md
-  - backend/src/shared/errors.ts
-  - .agents/skills/spectra-apply/SKILL.md
-  - backend/src/modules/orders/orders.service.ts
-  - .agents/skills/spectra-archive/SKILL.md
-  - backend/src/modules/orders/orders.routes.ts
-  - backend/src/modules/orders/orders.schema.ts
-  - src/components/ui/Input.vue
-  - backend/src/modules/order-attachments/order-attachments.storage.ts
-  - backend/src/modules/order-attachments/order-attachments.service.ts
-  - .agents/skills/spectra-ask/SKILL.md
-  - supabase/migrations/20260813000000_persist_order_number_and_attachments.sql
-  - src/views/AllOrders.vue
-  - render.yaml
-  - src/views/OrderList.vue
-  - backend/src/modules/order-attachments/order-attachments.routes.ts
-  - .agents/skills/spectra-drift/SKILL.md
-  - .agents/skills/spectra-commit/SKILL.md
-  - .agents/skills/spectra-propose/SKILL.md
-  - src/services/ordersApi.js
-  - supabase/.temp/start-secrets/supabase_edge_runtime_Hakobi/main/index.ts
-  - .agents/skills/spectra-audit/SKILL.md
-  - src/components/orders/OrderFormModal.vue
-  - .agents/skills/spectra-debug/SKILL.md
-  - backend/src/config.ts
-  - src/domain/orderValidation.js
-  - src/components/orders/OrderDetailsModal.vue
-  - src/stores/orders.js
-tests:
-  - scripts/tests/deploymentConfig.spec.js
-  - backend/tests/order-attachments/order-attachments.service.test.ts
-  - backend/tests/migrations/migration.test.ts
-  - backend/tests/config/config.test.ts
-  - backend/tests/orders/orders.repository.test.ts
-  - backend/tests/orders/orders.service.test.ts
-  - tests/views/AllOrders.spec.js
-  - tests/services/ordersApi.spec.js
-  - tests/components/orders/OrderDetailsModal.spec.js
-  - tests/components/orders/OrderFormModal.spec.js
-  - backend/tests/orders/orders.mapper.test.ts
-  - backend/tests/order-attachments/order-attachments.routes.test.ts
-  - tests/stores/orders.spec.js
-  - backend/tests/order-attachments/order-attachments.storage.test.ts
-  - tests/domain/orderValidation.spec.js
-  - backend/tests/app/app.test.ts
-  - tests/views/OrderList.spec.js
--->
-
----
-### Requirement: Order name and amount are normalized before validation and storage
-
-The system SHALL trim leading and trailing whitespace from the order name and SHALL coerce the order amount to a number before validating and storing order data, regardless of which entry point supplied the data.
-
-#### Scenario: Name with surrounding whitespace is trimmed before storage
-- **WHEN** order data is submitted with a name containing leading or trailing whitespace, such as `"  Widget  "`
-- **THEN** the stored order's name SHALL be `"Widget"`, with the surrounding whitespace removed
-
-##### Example: normalization applied consistently
-| Input name | Input amount | Stored name | Stored amount |
-| --- | --- | --- | --- |
-| `"  Widget  "` | `"10"` | `"Widget"` | `10` |
-| `"Gadget"` | `10` | `"Gadget"` | `10` |
-
-
-<!-- @trace
-source: centralize-order-validation
-updated: 2026-07-15
-code:
-  - src/domain/orderValidation.js
-  - src/stores/orders.js
-  - src/components/orders/OrderFormModal.vue
-tests:
-  - src/stores/__tests__/orders.spec.js
-  - src/components/orders/__tests__/OrderFormModal.spec.js
-  - src/domain/__tests__/orderValidation.spec.js
-  - src/views/__tests__/OrderList.spec.js
--->
-
----
-### Requirement: Order form displays field-specific errors sourced from the shared validator
-
-The order form SHALL display shared name and amount validation errors and SHALL NOT define or display a product-category-required error. Unsupported product category values received through a non-UI path MUST still be rejected by the shared validator.
-
-#### Scenario: Core validation fails
-
-- **WHEN** a user submits an empty name or an amount that is empty, zero, negative, non-numeric, or non-finite
-- **THEN** the form SHALL display the shared field error and SHALL NOT submit
-
-#### Scenario: Category selection is empty
-
-- **WHEN** a user submits an otherwise valid form with no product category selected
-- **THEN** the form SHALL submit without a product category error
+- **GIVEN** an order has nine attachment metadata rows
+- **WHEN** two valid uploads race to insert metadata
+- **THEN** exactly one insert SHALL succeed
+- **AND** the other SHALL return HTTP 409 with code `ATTACHMENT_LIMIT_REACHED`
 
 
 <!-- @trace
@@ -263,27 +165,158 @@ tests:
 -->
 
 ---
-### Requirement: Product URLs use shared safe web validation
-The shared order validator SHALL accept an empty product URL as an optional value and SHALL accept a non-empty product URL only when it is a valid absolute URL using HTTP or HTTPS. The create and edit form and direct orders store writes MUST use the same validation result and field error.
+### Requirement: Attachment lifecycle failures remain recoverable
 
-#### Scenario: Safe product URL is accepted
-- **WHEN** order data contains `https://example.com/item/1` as its product URL
-- **THEN** the shared validator SHALL accept the product URL and SHALL NOT report a product URL field error
+The attachment service SHALL compensate for a metadata failure after Storage upload and SHALL retain metadata when Storage deletion fails. Creating an order MUST NOT be rolled back because one or more subsequent attachment uploads fail.
 
-#### Scenario: Empty product URL is accepted
-- **WHEN** order data contains an empty string as its product URL
-- **THEN** the shared validator SHALL accept the optional product URL
+#### Scenario: Metadata insert fails after upload
 
-#### Scenario: Unsafe or malformed product URL is rejected
-- **WHEN** order data contains a malformed URL or a URL using a protocol other than HTTP or HTTPS
-- **THEN** the shared validator SHALL reject the data with a product URL field error, the form SHALL display that error, and neither the form nor a direct store write SHALL issue an API mutation
+- **WHEN** Storage upload succeeds and metadata insert fails
+- **THEN** the service SHALL attempt to remove the newly uploaded object
+- **AND** it SHALL return a server error without reporting the attachment as created
 
-##### Example: product URL boundaries
+#### Scenario: Storage deletion fails
 
-| Input | Expected result |
-| --- | --- |
-| `` | accepted as absent |
-| `https://example.com/item/1` | accepted |
-| `http://example.com/item/1` | accepted |
-| `javascript:alert(1)` | rejected |
-| `example.com/item/1` | rejected |
+- **WHEN** an owner deletes an attachment and Storage removal fails
+- **THEN** the backend SHALL retain the attachment metadata
+- **AND** it SHALL return an error that permits a later retry
+
+#### Scenario: Some create-form uploads fail
+
+- **GIVEN** the order create request succeeds
+- **WHEN** at least one selected attachment upload succeeds and at least one fails
+- **THEN** the created order SHALL remain in the confirmed order collection
+- **AND** the UI SHALL show successful attachments and identify each failed filename with a retry action
+
+
+<!-- @trace
+source: persist-order-number-and-attachments
+updated: 2026-08-13
+code:
+  - backend/package.json
+  - backend/src/modules/order-attachments/order-attachments.repository.ts
+  - backend/src/modules/orders/orders.mapper.ts
+  - backend/src/app.ts
+  - backend/src/modules/order-attachments/order-attachments.mapper.ts
+  - .agents/skills/spectra-discuss/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
+  - backend/src/shared/errors.ts
+  - .agents/skills/spectra-apply/SKILL.md
+  - backend/src/modules/orders/orders.service.ts
+  - .agents/skills/spectra-archive/SKILL.md
+  - backend/src/modules/orders/orders.routes.ts
+  - backend/src/modules/orders/orders.schema.ts
+  - src/components/ui/Input.vue
+  - backend/src/modules/order-attachments/order-attachments.storage.ts
+  - backend/src/modules/order-attachments/order-attachments.service.ts
+  - .agents/skills/spectra-ask/SKILL.md
+  - supabase/migrations/20260813000000_persist_order_number_and_attachments.sql
+  - src/views/AllOrders.vue
+  - render.yaml
+  - src/views/OrderList.vue
+  - backend/src/modules/order-attachments/order-attachments.routes.ts
+  - .agents/skills/spectra-drift/SKILL.md
+  - .agents/skills/spectra-commit/SKILL.md
+  - .agents/skills/spectra-propose/SKILL.md
+  - src/services/ordersApi.js
+  - supabase/.temp/start-secrets/supabase_edge_runtime_Hakobi/main/index.ts
+  - .agents/skills/spectra-audit/SKILL.md
+  - src/components/orders/OrderFormModal.vue
+  - .agents/skills/spectra-debug/SKILL.md
+  - backend/src/config.ts
+  - src/domain/orderValidation.js
+  - src/components/orders/OrderDetailsModal.vue
+  - src/stores/orders.js
+tests:
+  - scripts/tests/deploymentConfig.spec.js
+  - backend/tests/order-attachments/order-attachments.service.test.ts
+  - backend/tests/migrations/migration.test.ts
+  - backend/tests/config/config.test.ts
+  - backend/tests/orders/orders.repository.test.ts
+  - backend/tests/orders/orders.service.test.ts
+  - tests/views/AllOrders.spec.js
+  - tests/services/ordersApi.spec.js
+  - tests/components/orders/OrderDetailsModal.spec.js
+  - tests/components/orders/OrderFormModal.spec.js
+  - backend/tests/orders/orders.mapper.test.ts
+  - backend/tests/order-attachments/order-attachments.routes.test.ts
+  - tests/stores/orders.spec.js
+  - backend/tests/order-attachments/order-attachments.storage.test.ts
+  - tests/domain/orderValidation.spec.js
+  - backend/tests/app/app.test.ts
+  - tests/views/OrderList.spec.js
+-->
+
+---
+### Requirement: Owners can list download and delete attachment resources
+
+The API SHALL expose owned attachment list, upload, short-lived signed download, and delete operations without exposing permanent public URLs or trusted storage paths.
+
+#### Scenario: Owner downloads an attachment
+
+- **WHEN** an owner requests an attachment download
+- **THEN** the backend SHALL redirect to a short-lived signed URL for that private object
+
+#### Scenario: Owner deletes an attachment
+
+- **WHEN** Storage removal and metadata deletion both succeed
+- **THEN** the backend SHALL return HTTP 204
+- **AND** a subsequent owned list SHALL omit the attachment
+
+<!-- @trace
+source: persist-order-number-and-attachments
+updated: 2026-08-13
+code:
+  - backend/package.json
+  - backend/src/modules/order-attachments/order-attachments.repository.ts
+  - backend/src/modules/orders/orders.mapper.ts
+  - backend/src/app.ts
+  - backend/src/modules/order-attachments/order-attachments.mapper.ts
+  - .agents/skills/spectra-discuss/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
+  - backend/src/shared/errors.ts
+  - .agents/skills/spectra-apply/SKILL.md
+  - backend/src/modules/orders/orders.service.ts
+  - .agents/skills/spectra-archive/SKILL.md
+  - backend/src/modules/orders/orders.routes.ts
+  - backend/src/modules/orders/orders.schema.ts
+  - src/components/ui/Input.vue
+  - backend/src/modules/order-attachments/order-attachments.storage.ts
+  - backend/src/modules/order-attachments/order-attachments.service.ts
+  - .agents/skills/spectra-ask/SKILL.md
+  - supabase/migrations/20260813000000_persist_order_number_and_attachments.sql
+  - src/views/AllOrders.vue
+  - render.yaml
+  - src/views/OrderList.vue
+  - backend/src/modules/order-attachments/order-attachments.routes.ts
+  - .agents/skills/spectra-drift/SKILL.md
+  - .agents/skills/spectra-commit/SKILL.md
+  - .agents/skills/spectra-propose/SKILL.md
+  - src/services/ordersApi.js
+  - supabase/.temp/start-secrets/supabase_edge_runtime_Hakobi/main/index.ts
+  - .agents/skills/spectra-audit/SKILL.md
+  - src/components/orders/OrderFormModal.vue
+  - .agents/skills/spectra-debug/SKILL.md
+  - backend/src/config.ts
+  - src/domain/orderValidation.js
+  - src/components/orders/OrderDetailsModal.vue
+  - src/stores/orders.js
+tests:
+  - scripts/tests/deploymentConfig.spec.js
+  - backend/tests/order-attachments/order-attachments.service.test.ts
+  - backend/tests/migrations/migration.test.ts
+  - backend/tests/config/config.test.ts
+  - backend/tests/orders/orders.repository.test.ts
+  - backend/tests/orders/orders.service.test.ts
+  - tests/views/AllOrders.spec.js
+  - tests/services/ordersApi.spec.js
+  - tests/components/orders/OrderDetailsModal.spec.js
+  - tests/components/orders/OrderFormModal.spec.js
+  - backend/tests/orders/orders.mapper.test.ts
+  - backend/tests/order-attachments/order-attachments.routes.test.ts
+  - tests/stores/orders.spec.js
+  - backend/tests/order-attachments/order-attachments.storage.test.ts
+  - tests/domain/orderValidation.spec.js
+  - backend/tests/app/app.test.ts
+  - tests/views/OrderList.spec.js
+-->

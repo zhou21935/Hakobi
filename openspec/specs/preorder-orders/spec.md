@@ -1334,48 +1334,81 @@ tests:
 ---
 ### Requirement: Orders can be tagged with one or more product categories
 
-The system SHALL require a user to select at least one product category — from the fixed set 周邊 (merch), 書籍 (book), 其他 (other) — via a multi-select control in the order create/edit form before the order can be submitted, SHALL store the selection as the order's `productCategories` array field, and SHALL display one tag per selected value on the order's card. The orders store's add and update operations SHALL enforce the at-least-one-category requirement directly, independent of the form, using the shared validation rules defined by the `order-validation` capability.
+Orders SHALL support zero or more product categories selected from Merchandise, Books, and Other. The create/edit form SHALL present the categories as an optional multiple selection, SHALL submit an empty array when none are selected, and SHALL reject unsupported category values.
 
-#### Scenario: Submitting without any product category blocks submission
+#### Scenario: No product category is selected
 
-- **WHEN** a user submits the order form with zero product categories selected
-- **THEN** the system SHALL display a validation error on the product category field and SHALL NOT create or update the order
+- **WHEN** a user submits an otherwise valid order without selecting a product category
+- **THEN** the order SHALL be created or updated with `productCategories: []`
+- **AND** the form SHALL NOT display a product category required error
 
-#### Scenario: Selecting multiple product categories persists all of them
+#### Scenario: Supported categories are selected
 
-- **WHEN** a user selects both "周邊" and "書籍" in the product category control and submits
-- **THEN** the order's `productCategories` field SHALL contain both `merch` and `book`
+- **WHEN** a user selects Merchandise and Books
+- **THEN** the order SHALL store `productCategories: ["merch", "book"]`
 
-##### Example: three orders with different selections
+#### Scenario: Unsupported category is submitted
 
-| Selected labels | Stored `productCategories` | Tags shown on card |
-| --- | --- | --- |
-| 周邊 | `['merch']` | 周邊 |
-| 書籍, 其他 | `['book', 'other']` | 書籍, 其他 |
-| 周邊, 書籍, 其他 | `['merch', 'book', 'other']` | 周邊, 書籍, 其他 |
+- **WHEN** an order mutation includes a product category outside `merch`, `book`, and `other`
+- **THEN** the mutation SHALL be rejected with a validation error
 
-#### Scenario: Tags render in a fixed order regardless of selection order
-
-- **WHEN** a user selects "其他" before "周邊"
-- **THEN** the order's card SHALL display the "周邊" tag before the "其他" tag, following the fixed option order 周邊, 書籍, 其他
-
-#### Scenario: Store rejects an empty product category list independent of the form
-
-- **WHEN** the orders store's add operation is called directly with an empty `productCategories` array, bypassing the form
-- **THEN** the system SHALL NOT create the order and SHALL return a value indicating the write did not occur
 
 <!-- @trace
-source: centralize-order-validation
-updated: 2026-07-15
+source: persist-order-number-and-attachments
+updated: 2026-08-13
 code:
-  - src/domain/orderValidation.js
-  - src/stores/orders.js
+  - backend/package.json
+  - backend/src/modules/order-attachments/order-attachments.repository.ts
+  - backend/src/modules/orders/orders.mapper.ts
+  - backend/src/app.ts
+  - backend/src/modules/order-attachments/order-attachments.mapper.ts
+  - .agents/skills/spectra-discuss/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
+  - backend/src/shared/errors.ts
+  - .agents/skills/spectra-apply/SKILL.md
+  - backend/src/modules/orders/orders.service.ts
+  - .agents/skills/spectra-archive/SKILL.md
+  - backend/src/modules/orders/orders.routes.ts
+  - backend/src/modules/orders/orders.schema.ts
+  - src/components/ui/Input.vue
+  - backend/src/modules/order-attachments/order-attachments.storage.ts
+  - backend/src/modules/order-attachments/order-attachments.service.ts
+  - .agents/skills/spectra-ask/SKILL.md
+  - supabase/migrations/20260813000000_persist_order_number_and_attachments.sql
+  - src/views/AllOrders.vue
+  - render.yaml
+  - src/views/OrderList.vue
+  - backend/src/modules/order-attachments/order-attachments.routes.ts
+  - .agents/skills/spectra-drift/SKILL.md
+  - .agents/skills/spectra-commit/SKILL.md
+  - .agents/skills/spectra-propose/SKILL.md
+  - src/services/ordersApi.js
+  - supabase/.temp/start-secrets/supabase_edge_runtime_Hakobi/main/index.ts
+  - .agents/skills/spectra-audit/SKILL.md
   - src/components/orders/OrderFormModal.vue
+  - .agents/skills/spectra-debug/SKILL.md
+  - backend/src/config.ts
+  - src/domain/orderValidation.js
+  - src/components/orders/OrderDetailsModal.vue
+  - src/stores/orders.js
 tests:
-  - src/stores/__tests__/orders.spec.js
-  - src/components/orders/__tests__/OrderFormModal.spec.js
-  - src/domain/__tests__/orderValidation.spec.js
-  - src/views/__tests__/OrderList.spec.js
+  - scripts/tests/deploymentConfig.spec.js
+  - backend/tests/order-attachments/order-attachments.service.test.ts
+  - backend/tests/migrations/migration.test.ts
+  - backend/tests/config/config.test.ts
+  - backend/tests/orders/orders.repository.test.ts
+  - backend/tests/orders/orders.service.test.ts
+  - tests/views/AllOrders.spec.js
+  - tests/services/ordersApi.spec.js
+  - tests/components/orders/OrderDetailsModal.spec.js
+  - tests/components/orders/OrderFormModal.spec.js
+  - backend/tests/orders/orders.mapper.test.ts
+  - backend/tests/order-attachments/order-attachments.routes.test.ts
+  - tests/stores/orders.spec.js
+  - backend/tests/order-attachments/order-attachments.storage.test.ts
+  - tests/domain/orderValidation.spec.js
+  - backend/tests/app/app.test.ts
+  - tests/views/OrderList.spec.js
 -->
 
 ---
@@ -1517,3 +1550,159 @@ The order create and edit form SHALL render Notes as a multiline textarea with e
 - **WHEN** the user submits an otherwise valid order form
 - **THEN** the emitted payload contains notes equal to "第一行\n第二行"
 - **AND** the Notes control remains a textarea with a multi-line minimum height
+
+---
+### Requirement: Order number is persisted through create and edit
+
+The create/edit form SHALL accept an optional order number of at most 200 characters, and successful create and edit operations SHALL return and display the backend-confirmed value.
+
+#### Scenario: Order number round trip
+
+- **GIVEN** the user enters `114-2938471-0038`
+- **WHEN** an otherwise valid order is created and later reopened for editing
+- **THEN** the order number field SHALL contain `114-2938471-0038`
+
+#### Scenario: Empty order number
+
+- **WHEN** the order number is left empty
+- **THEN** the order SHALL persist an empty string without a validation error
+
+
+<!-- @trace
+source: persist-order-number-and-attachments
+updated: 2026-08-13
+code:
+  - backend/package.json
+  - backend/src/modules/order-attachments/order-attachments.repository.ts
+  - backend/src/modules/orders/orders.mapper.ts
+  - backend/src/app.ts
+  - backend/src/modules/order-attachments/order-attachments.mapper.ts
+  - .agents/skills/spectra-discuss/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
+  - backend/src/shared/errors.ts
+  - .agents/skills/spectra-apply/SKILL.md
+  - backend/src/modules/orders/orders.service.ts
+  - .agents/skills/spectra-archive/SKILL.md
+  - backend/src/modules/orders/orders.routes.ts
+  - backend/src/modules/orders/orders.schema.ts
+  - src/components/ui/Input.vue
+  - backend/src/modules/order-attachments/order-attachments.storage.ts
+  - backend/src/modules/order-attachments/order-attachments.service.ts
+  - .agents/skills/spectra-ask/SKILL.md
+  - supabase/migrations/20260813000000_persist_order_number_and_attachments.sql
+  - src/views/AllOrders.vue
+  - render.yaml
+  - src/views/OrderList.vue
+  - backend/src/modules/order-attachments/order-attachments.routes.ts
+  - .agents/skills/spectra-drift/SKILL.md
+  - .agents/skills/spectra-commit/SKILL.md
+  - .agents/skills/spectra-propose/SKILL.md
+  - src/services/ordersApi.js
+  - supabase/.temp/start-secrets/supabase_edge_runtime_Hakobi/main/index.ts
+  - .agents/skills/spectra-audit/SKILL.md
+  - src/components/orders/OrderFormModal.vue
+  - .agents/skills/spectra-debug/SKILL.md
+  - backend/src/config.ts
+  - src/domain/orderValidation.js
+  - src/components/orders/OrderDetailsModal.vue
+  - src/stores/orders.js
+tests:
+  - scripts/tests/deploymentConfig.spec.js
+  - backend/tests/order-attachments/order-attachments.service.test.ts
+  - backend/tests/migrations/migration.test.ts
+  - backend/tests/config/config.test.ts
+  - backend/tests/orders/orders.repository.test.ts
+  - backend/tests/orders/orders.service.test.ts
+  - tests/views/AllOrders.spec.js
+  - tests/services/ordersApi.spec.js
+  - tests/components/orders/OrderDetailsModal.spec.js
+  - tests/components/orders/OrderFormModal.spec.js
+  - backend/tests/orders/orders.mapper.test.ts
+  - backend/tests/order-attachments/order-attachments.routes.test.ts
+  - tests/stores/orders.spec.js
+  - backend/tests/order-attachments/order-attachments.storage.test.ts
+  - tests/domain/orderValidation.spec.js
+  - backend/tests/app/app.test.ts
+  - tests/views/OrderList.spec.js
+-->
+
+---
+### Requirement: Amount input prevents negative entry without a spinner
+
+The amount control SHALL use a text control with decimal input mode, SHALL NOT expose native number spinner controls, and SHALL prevent a negative value from remaining in the control. Shared frontend, backend, and database validation MUST continue to require a finite amount greater than zero.
+
+#### Scenario: Positive decimal is entered
+
+- **WHEN** a user enters `35.29`
+- **THEN** the control SHALL retain `35.29`
+- **AND** an otherwise valid order SHALL submit amount `35.29`
+
+#### Scenario: Negative input is attempted
+
+- **WHEN** a user types or pastes `-6`
+- **THEN** the control SHALL NOT contain a negative value
+- **AND** no submitted request SHALL contain a negative amount
+
+#### Scenario: Non-positive or invalid amount reaches validation
+
+- **WHEN** amount is empty, zero, non-numeric, non-finite, or negative
+- **THEN** the order SHALL NOT be submitted or persisted
+- **AND** the form SHALL display the shared positive-amount validation error
+
+<!-- @trace
+source: persist-order-number-and-attachments
+updated: 2026-08-13
+code:
+  - backend/package.json
+  - backend/src/modules/order-attachments/order-attachments.repository.ts
+  - backend/src/modules/orders/orders.mapper.ts
+  - backend/src/app.ts
+  - backend/src/modules/order-attachments/order-attachments.mapper.ts
+  - .agents/skills/spectra-discuss/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
+  - backend/src/shared/errors.ts
+  - .agents/skills/spectra-apply/SKILL.md
+  - backend/src/modules/orders/orders.service.ts
+  - .agents/skills/spectra-archive/SKILL.md
+  - backend/src/modules/orders/orders.routes.ts
+  - backend/src/modules/orders/orders.schema.ts
+  - src/components/ui/Input.vue
+  - backend/src/modules/order-attachments/order-attachments.storage.ts
+  - backend/src/modules/order-attachments/order-attachments.service.ts
+  - .agents/skills/spectra-ask/SKILL.md
+  - supabase/migrations/20260813000000_persist_order_number_and_attachments.sql
+  - src/views/AllOrders.vue
+  - render.yaml
+  - src/views/OrderList.vue
+  - backend/src/modules/order-attachments/order-attachments.routes.ts
+  - .agents/skills/spectra-drift/SKILL.md
+  - .agents/skills/spectra-commit/SKILL.md
+  - .agents/skills/spectra-propose/SKILL.md
+  - src/services/ordersApi.js
+  - supabase/.temp/start-secrets/supabase_edge_runtime_Hakobi/main/index.ts
+  - .agents/skills/spectra-audit/SKILL.md
+  - src/components/orders/OrderFormModal.vue
+  - .agents/skills/spectra-debug/SKILL.md
+  - backend/src/config.ts
+  - src/domain/orderValidation.js
+  - src/components/orders/OrderDetailsModal.vue
+  - src/stores/orders.js
+tests:
+  - scripts/tests/deploymentConfig.spec.js
+  - backend/tests/order-attachments/order-attachments.service.test.ts
+  - backend/tests/migrations/migration.test.ts
+  - backend/tests/config/config.test.ts
+  - backend/tests/orders/orders.repository.test.ts
+  - backend/tests/orders/orders.service.test.ts
+  - tests/views/AllOrders.spec.js
+  - tests/services/ordersApi.spec.js
+  - tests/components/orders/OrderDetailsModal.spec.js
+  - tests/components/orders/OrderFormModal.spec.js
+  - backend/tests/orders/orders.mapper.test.ts
+  - backend/tests/order-attachments/order-attachments.routes.test.ts
+  - tests/stores/orders.spec.js
+  - backend/tests/order-attachments/order-attachments.storage.test.ts
+  - tests/domain/orderValidation.spec.js
+  - backend/tests/app/app.test.ts
+  - tests/views/OrderList.spec.js
+-->
