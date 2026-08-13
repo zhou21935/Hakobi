@@ -31,7 +31,7 @@ describe('OrderDetailsModal content', () => {
     const wrapper = mountDetails(baseOrder({ platform: '', productUrl: '', notes: '', orderDate: null, estimatedShipDate: null, estimatedArrivalDate: null, shippingMethod: '', trackingNumber: '' }))
     expect(body().findAll('[data-testid="empty-value"]').length).toBeGreaterThanOrEqual(7)
     expect(body().text()).toContain('尚未填寫')
-    expect(body().find('[aria-label="複製追蹤號碼"]').exists()).toBe(false)
+    expect(body().find('[aria-label="複製 追蹤號碼"]').exists()).toBe(false)
     wrapper.unmount()
   })
 })
@@ -55,7 +55,7 @@ describe('OrderDetailsModal actions', () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
     const wrapper = mountDetails()
-    await body().find('[aria-label="複製追蹤號碼"]').trigger('click')
+    await body().find('[aria-label="複製 追蹤號碼"]').trigger('click')
     expect(writeText).toHaveBeenCalledWith('EN123456789JP')
     expect(body().text()).toContain('已複製 ✓')
     await vi.advanceTimersByTimeAsync(2000)
@@ -63,10 +63,23 @@ describe('OrderDetailsModal actions', () => {
     wrapper.unmount()
   })
 
+  it('copies the exact order number independently from the tracking number', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    const wrapper = mountDetails()
+
+    await body().find('[aria-label="複製 訂單號碼"]').trigger('click')
+
+    expect(writeText).toHaveBeenCalledWith('114-2938471-0038')
+    expect(body().find('[aria-label="複製 訂單號碼"]').text()).toBe('已複製 ✓')
+    expect(body().find('[aria-label="複製 追蹤號碼"]').text()).toBe('複製')
+    wrapper.unmount()
+  })
+
   it('keeps the tracking number visible and reports clipboard failure', async () => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) } })
     const wrapper = mountDetails()
-    await body().find('[aria-label="複製追蹤號碼"]').trigger('click')
+    await body().find('[aria-label="複製 追蹤號碼"]').trigger('click')
     expect(body().text()).toContain('EN123456789JP')
     expect(body().text()).toContain('複製失敗，請手動選取')
     wrapper.unmount()
@@ -75,7 +88,7 @@ describe('OrderDetailsModal actions', () => {
   it('fails visibly when the Clipboard API is unavailable', async () => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined })
     const wrapper = mountDetails()
-    await body().find('[aria-label="複製追蹤號碼"]').trigger('click')
+    await body().find('[aria-label="複製 追蹤號碼"]').trigger('click')
     expect(body().text()).toContain('複製失敗，請手動選取')
     wrapper.unmount()
   })
@@ -112,7 +125,7 @@ describe('OrderDetailsModal narrow layout', () => {
     const content = body().find('[data-testid="order-details-content"]')
     expect(content.attributes('class')).toContain('min-w-0')
     expect(content.findAll('.break-words').length).toBeGreaterThan(0)
-    for (const label of ['關閉訂單詳情', '編輯訂單', '複製追蹤號碼', '開啟商品頁']) expect(body().find(`[aria-label="${label}"]`).exists()).toBe(true)
+    for (const label of ['關閉訂單詳情', '編輯訂單', '複製 訂單號碼', '複製 追蹤號碼', '開啟商品頁']) expect(body().find(`[aria-label="${label}"]`).exists()).toBe(true)
     wrapper.unmount()
   })
 })
