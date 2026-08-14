@@ -22,8 +22,8 @@
   --color-ink: #5b3f63;
   --color-ink-muted: #c99bb8;
 
-  --font-heading: 'Baloo 2', system-ui, sans-serif;
-  --font-sans: 'Noto Sans TC', system-ui, sans-serif;
+  --font-heading: 'Chiron GoRound TC', system-ui, sans-serif;
+  --font-sans: 'Chiron GoRound TC', system-ui, sans-serif;
 
   --radius-card: 22px;
   --radius-logo: 16px;
@@ -35,6 +35,7 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
+  font-weight: 500;
   background: var(--color-page-bg);
   color: var(--color-ink);
 }

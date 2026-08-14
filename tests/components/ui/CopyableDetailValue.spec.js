@@ -22,6 +22,9 @@ describe('CopyableDetailValue', () => {
       template: '<dl><CopyableDetailValue label="訂單號碼" value="114-2938471-0038" /><CopyableDetailValue label="追蹤號碼" value="EN123456789JP" /></dl>'
     })
 
+    const copyIcon = wrapper.get('[aria-label="複製 訂單號碼"] [data-icon="copy"]')
+    expect(copyIcon.attributes('aria-hidden')).toBe('true')
+
     await wrapper.get('[aria-label="複製 訂單號碼"]').trigger('click')
 
     expect(writeText).toHaveBeenCalledWith('114-2938471-0038')

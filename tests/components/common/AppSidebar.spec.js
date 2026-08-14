@@ -18,6 +18,14 @@ beforeEach(async () => {
 })
 
 describe('AppSidebar category navigation', () => {
+  it('renders the official Hakobi logo without the package emoji', () => {
+    const wrapper = mount(AppSidebar, { global: { plugins: [router] } })
+    const logo = wrapper.get('img[alt="Hakobi"]')
+
+    expect(logo.attributes('src')).toBe('/hakobi-logo.svg')
+    expect(wrapper.get('[data-testid="sidebar-brand"]').text()).not.toContain('📦')
+  })
+
   it('renders exactly two category links: 代購 and 集運包裹', async () => {
     const wrapper = mount(AppSidebar, { global: { plugins: [router] } })
     const categoryLinks = wrapper.findAll('a[href^="/orders/"]')
@@ -26,6 +34,16 @@ describe('AppSidebar category navigation', () => {
       expect.stringContaining('海外代購'),
       expect.stringContaining('集運包裹')
     ])
+  })
+
+  it('uses the specified SVG for every navigation destination without emoji', () => {
+    const wrapper = mount(AppSidebar, { global: { plugins: [router] } })
+
+    expect(wrapper.get('a[href="/"] [data-icon="overview"]').attributes('aria-hidden')).toBe('true')
+    expect(wrapper.get('a[href="/orders/agent"] [data-icon="agent"]').attributes('aria-hidden')).toBe('true')
+    expect(wrapper.get('a[href="/orders/parcel"] [data-icon="parcel"]').attributes('aria-hidden')).toBe('true')
+    expect(wrapper.get('a[href="/profile"] [data-icon="profile"]').attributes('aria-hidden')).toBe('true')
+    expect(wrapper.text()).not.toMatch(/[📦📊👤]/u)
   })
 
   it('omits the development-only UI showcase destination', () => {

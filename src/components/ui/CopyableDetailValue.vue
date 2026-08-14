@@ -8,9 +8,10 @@
         v-if="hasValue"
         size="sm"
         variant="secondary"
-        :aria-label="`複製 ${label}`"
-        @click="copyValue"
+      :aria-label="`複製 ${label}`"
+      @click="copyValue"
       >
+        <AppIcon name="copy" class="h-4 w-4 shrink-0" />
         {{ copyState === 'success' ? '已複製 ✓' : '複製' }}
       </Button>
     </dd>
@@ -23,6 +24,7 @@
 <script setup>
 import { computed, onUnmounted, ref } from 'vue'
 import Button from '@/components/ui/Button.vue'
+import AppIcon from '@/components/icons/AppIcon.vue'
 
 const props = defineProps({
   label: { type: String, required: true },

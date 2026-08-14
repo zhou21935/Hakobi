@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { readFileSync } from 'node:fs'
 
 const authState = vi.hoisted(() => ({ initialized: false, isAuthenticated: false, initialize: vi.fn() }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => authState }))
 
-import { createAuthGuard, routes } from '@/router'
+import router, { createAuthGuard, routes } from '@/router'
 
 describe('authentication route guard', () => {
   beforeEach(() => {
@@ -60,6 +61,18 @@ describe('authentication route guard', () => {
 })
 
 describe('route completeness', () => {
+  it('keeps the browser tab branded as Hakobi on initial load and navigation', async () => {
+    const html = readFileSync('index.html', 'utf8')
+    expect(html).toContain('<link rel="icon" type="image/svg+xml" href="/favicon.svg" />')
+    expect(html).toContain('<title>Hakobi</title>')
+
+    await router.push('/login')
+    await router.isReady()
+    expect(document.title).toBe('Hakobi')
+    await router.push('/register')
+    expect(document.title).toBe('Hakobi')
+  })
+
   it('uses the all-orders behavior at home and redirects the legacy orders path', () => {
     expect(routes.find(({ name }) => name === 'OrderOverview')).toMatchObject({
       path: '/',

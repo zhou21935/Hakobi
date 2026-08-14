@@ -77,9 +77,8 @@ export const createAuthGuard = (pinia) => async (to) => {
 
 export const installAuthGuard = (pinia) => router.beforeEach(createAuthGuard(pinia))
 
-router.afterEach((to) => {
-  const title = to.meta.title || 'Hakobi'
-  document.title = title
+router.afterEach(() => {
+  document.title = 'Hakobi'
 })
 
 export default router

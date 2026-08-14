@@ -11,12 +11,8 @@
     :class="open ? 'translate-x-0' : '-translate-x-full'"
   >
     <!-- Logo -->
-    <div class="px-6 py-8 border-b border-sidebar-border flex items-center gap-3">
-      <div
-        class="w-10 h-10 rounded-logo bg-gradient-to-br from-primary-from to-primary-to flex items-center justify-center text-lg shadow-emphasis shrink-0"
-      >
-        📦
-      </div>
+    <div data-testid="sidebar-brand" class="px-6 py-8 border-b border-sidebar-border flex items-center gap-3">
+      <img :src="'/hakobi-logo.svg'" alt="Hakobi" class="h-12 w-12 shrink-0" />
       <div>
         <h1 class="text-xl font-heading font-bold text-ink">Hakobi</h1>
         <p class="text-xs text-ink-muted mt-0.5">訂單管理</p>
@@ -33,7 +29,8 @@
             :class="isActive('/') ? 'bg-gradient-to-br from-primary-from to-primary-to text-white shadow-emphasis' : ''"
             @click="$emit('update:open', false)"
           >
-            📊 總覽
+            <AppIcon name="overview" class="h-5 w-5 shrink-0" />
+            總覽
           </router-link>
         </li>
 
@@ -52,7 +49,7 @@
                   class="w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0"
                   :class="isActive(`/orders/${category}`) ? 'bg-white/25' : iconCycleClass(index)"
                 >
-                  📦
+                  <AppIcon :name="category" class="h-3.5 w-3.5" />
                 </span>
                 {{ CATEGORY_LABELS[category] }}
               </router-link>
@@ -74,7 +71,7 @@
                   class="w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0"
                   :class="isActive('/profile') ? 'bg-white/25' : 'bg-icon-cycle-3'"
                 >
-                  👤
+                  <AppIcon name="profile" class="h-3.5 w-3.5" />
                 </span>
                 個人資料
               </router-link>
@@ -107,6 +104,7 @@
 
 <script setup>
 import { useRoute } from 'vue-router'
+import AppIcon from '@/components/icons/AppIcon.vue'
 import { CATEGORY_LABELS } from '@/stores/orders'
 
 defineProps({
